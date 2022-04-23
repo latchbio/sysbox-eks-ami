@@ -18,3 +18,13 @@ Packer script for building an AMI with pre-installed Sysbox based on an Ubuntu E
 - Configures CRI-O to work with Sysbox
 - Sets `kubelet-eks` to use CRI-O by default
 - Adds Sysbox to the list of CRI-O runtimes
+
+## License/Copying
+
+**Intent:** dedicated to the public domain. To comply with legal precedent and ease adoption in corporate environments, multi-licensed under well-known terms.
+
+**Preferred:** [CC0](https://creativecommons.org/publicdomain/zero/1.0/)
+**Alternative:**
+
+- [BSD0](./licenses/BSD0)
+- [MIT](./licenses/MIT)
