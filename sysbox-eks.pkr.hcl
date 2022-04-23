@@ -221,9 +221,12 @@ build {
       "sudo snap stop kubelet-eks",
       "sudo snap set kubelet-eks container-runtime=remote",
       "sudo snap set kubelet-eks container-runtime-endpoint=unix:///var/run/crio/crio.sock",
-      # The EKS boot script resets this otherwise:
+
+      # The EKS boot script does this for normal runtimes
       "sudo sed --in-place 's/CONTAINER_RUNTIME=\"dockerd\"/CONTAINER_RUNTIME=\"remote\"/' /etc/eks/bootstrap.sh",
-      "perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh"
+      "perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh",
+      "rm --force /run/dockershim.sock",
+      "ln -sf /run/crio/crio.sock /run/dockershim.sock"
     ]
   }
 
