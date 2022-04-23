@@ -60,9 +60,9 @@ source "amazon-ebs" "ubuntu-eks" {
     owners      = ["099720109477"]
   }
 
-  region = "us-west-2"
+  region        = "us-west-2"
   instance_type = "t2.micro"
-  ssh_username = "ubuntu"
+  ssh_username  = "ubuntu"
 }
 
 build {
@@ -151,7 +151,7 @@ build {
   }
 
   provisioner "file" {
-    source = "crio"
+    source      = "crio"
     destination = "/home/ubuntu/crio"
     max_retries = 3
   }

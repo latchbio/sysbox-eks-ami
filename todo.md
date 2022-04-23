@@ -1,0 +1,1 @@
+- make the `packer fmt` pre-commit hook actually fix the file
