@@ -8,6 +8,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Init Packer
+        uses: hashicorp/packer-github-actions@master
+        with:
+          command: init
       - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
