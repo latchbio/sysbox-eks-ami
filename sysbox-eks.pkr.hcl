@@ -104,8 +104,12 @@ build {
       "echo Installing dependencies",
       "sudo apt-get install --yes --no-install-recommends make dkms",
 
-      "echo Cloning the repository",
-      # todo(maximsmol): somehow detect the kernel version instead
+      "echo Detecting kernel version to determine the correct branch",
+      "export kernel_version=\"$(uname -r)\"",
+      "echo \"$kernel_version\"",
+      "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
+
+      "echo Cloning the repository (branch $${kernel_to_branch[$kernel_version]})",
       "git clone --branch k5.13 --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
       "cd shiftfs",
 
