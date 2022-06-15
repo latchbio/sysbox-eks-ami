@@ -169,53 +169,53 @@ build {
     ]
   }
 
-  # provisioner "file" {
-  #   source      = "crio"
-  #   destination = "/home/ubuntu/crio"
-  #   max_retries = 3
-  # }
-
-  # provisioner "shell" {
-  #   inline = [
-  #     "sudo mv crio /usr/bin/crio",
-  #     "sudo chmod +x /usr/bin/crio"
-  #   ]
-  # }
+  provisioner "file" {
+    source      = "crio"
+    destination = "/home/ubuntu/crio"
+    max_retries = 3
+  }
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
-
     inline = [
-      "echo '>>> Sysbox CRI-O patch'",
-      "echo Adding the Go backports repository",
-      "sudo apt-get install --yes --no-install-recommends software-properties-common",
-      "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
-
-      "echo Installing Go",
-      "sudo apt-get update",
-      # todo(maximsmol): lock the golang version
-      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
-
-      "echo Cloning the patched CRI-O repository",
-      "git clone --branch v1.23-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
-
-      "echo Building",
-      "cd cri-o",
-      "make binaries",
-
-      "echo Installing the patched binary",
-      "sudo mv bin/crio /usr/bin/crio",
-      "sudo chmod +x /usr/bin/crio",
-
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf cri-o",
-
-      "echo Restarting CRI-O",
-      "sudo systemctl restart crio"
+      "sudo mv crio /usr/bin/crio",
+      "sudo chmod +x /usr/bin/crio"
     ]
   }
+
+  # provisioner "shell" {
+  #   inline_shebang = "/bin/bash -e"
+
+  #   inline = [
+  #     "echo '>>> Sysbox CRI-O patch'",
+  #     "echo Adding the Go backports repository",
+  #     "sudo apt-get install --yes --no-install-recommends software-properties-common",
+  #     "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+
+  #     "echo Installing Go",
+  #     "sudo apt-get update",
+  #     # todo(maximsmol): lock the golang version
+  #     "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
+
+  #     "echo Cloning the patched CRI-O repository",
+  #     "git clone --branch v1.23-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+
+  #     "echo Building",
+  #     "cd cri-o",
+  #     "make binaries",
+
+  #     "echo Installing the patched binary",
+  #     "sudo mv bin/crio /usr/bin/crio",
+  #     "sudo chmod +x /usr/bin/crio",
+
+
+  #     "echo Cleaning up",
+  #     "cd ..",
+  #     "rm -rf cri-o",
+
+  #     "echo Restarting CRI-O",
+  #     "sudo systemctl restart crio"
+  #   ]
+  # }
 
   provisioner "shell" {
     inline_shebang = "/bin/bash -e"
