@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.21"
+  default = "1.20"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -72,15 +72,13 @@ build {
   ]
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
     inline = [
       "echo Updating apt",
-      "sudo apt-get update",
+      "sudo apt-get update"
     ]
   }
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
     inline = [
       # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
       "echo '>>> Sysbox'",
@@ -91,8 +89,7 @@ build {
       "sudo dpkg --install ./sysbox-ce_*.linux_amd64.deb || true", # will fail due to missing dependencies, fixed in the next step
 
       "echo 'Fixing the Sysbox package (installing dependencies)'",
-      "sudo apt-get install --fix-broken --yes --no-install-recommends || true",
-      "sudo apt-get install -y ./sysbox-ce_*.linux_amd64.deb", # Need to run again to make sure symlinks are correctly set
+      "sudo apt-get install --fix-broken --yes --no-install-recommends",
 
       "echo Cleaning up",
       "rm ./sysbox-ce_*.linux_amd64.deb",
@@ -100,16 +97,6 @@ build {
   }
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
-    inline = [
-      "echo '>>> Fix docker startup issue'",
-      "sudo sed -i '/\"bridge\": \"none\",/d' /etc/docker/daemon.json", # supplying both bridge (-b) and -bip causes docker to crash downstream
-      "sudo systemctl start docker"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
     inline = [
       # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-shiftfs
       "echo '>>> Shiftfs'",
@@ -118,13 +105,12 @@ build {
       "sudo apt-get install --yes --no-install-recommends make dkms",
 
       "echo Detecting kernel version to determine the correct branch",
-      "export kernel_version=\"$(uname -r | head -c4)\"",
+      "export kernel_version=\"$(uname -r)\"",
       "echo \"$kernel_version\"",
       "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
-      "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
 
-      "echo Cloning the repository branch: $branch",
-      "git clone --branch $branch --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
+      "echo Cloning the repository (branch $${kernel_to_branch[$kernel_version]})",
+      "git clone --branch k5.13 --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
       "cd shiftfs",
 
       "echo Running the update script",
@@ -140,7 +126,6 @@ build {
   }
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
     inline = [
       # https://github.com/cri-o/cri-o/blob/a68a72071e5004be78fe2b1b98cb3bfa0e51b74b/install.md#apt-based-operating-systems
       "echo '>>> CRI-O'",
@@ -174,7 +159,6 @@ build {
     destination = "/home/ubuntu/crio"
     max_retries = 3
   }
-
   provisioner "shell" {
     inline = [
       "sudo mv crio /usr/bin/crio",
@@ -183,8 +167,6 @@ build {
   }
 
   # provisioner "shell" {
-  #   inline_shebang = "/bin/bash -e"
-
   #   inline = [
   #     "echo '>>> Sysbox CRI-O patch'",
   #     "echo Adding the Go backports repository",
@@ -205,8 +187,6 @@ build {
 
   #     "echo Installing the patched binary",
   #     "sudo mv bin/crio /usr/bin/crio",
-  #     "sudo chmod +x /usr/bin/crio",
-
 
   #     "echo Cleaning up",
   #     "cd ..",
@@ -218,13 +198,12 @@ build {
   # }
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
     inline = [
       # Much of the rest of this is from inside the Sysbox K8s installer image
       "echo '>>> Doing basic CRI-O configuration'",
 
       "echo Installing Dasel",
-      "sudo curl --location \"$(curl --silent --show-error --location https://api.github.com/repos/tomwright/dasel/releases/latest | grep browser_download_url | grep linux_amd64 | cut -d\\\" -f 4 | head -n 1)\" --output /usr/local/bin/dasel",
+      "sudo curl --location \"$(curl --silent --show-error --location https://api.github.com/repos/tomwright/dasel/releases/latest | grep browser_download_url | grep linux_amd64 | cut -d\\\" -f 4)\" --output /usr/local/bin/dasel",
       "sudo chmod +x /usr/local/bin/dasel",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
@@ -236,17 +215,6 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_RAW",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SYS_CHROOT",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple MKNOD",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple CHOWN",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple DAC_OVERRIDE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FSETID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FOWNER",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETGID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETUID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETPCAP",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_BIND_SERVICE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple KILL",
-      #
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.selinux' 'false'",
       #
       "sudo dasel put int --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.pids_limit' 16384",
       #
@@ -259,16 +227,14 @@ build {
       "sudo snap set kubelet-eks container-runtime-endpoint=unix:///var/run/crio/crio.sock",
 
       # The EKS boot script does this for normal runtimes
-      "sudo chmod -R a+rX /etc/eks",
       "sudo sed --in-place 's/CONTAINER_RUNTIME=\"dockerd\"/CONTAINER_RUNTIME=\"remote\"/' /etc/eks/bootstrap.sh",
-      "sudo perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh",
-      "sudo rm --force /run/dockershim.sock",
-      "sudo ln -sf /run/crio/crio.sock /run/dockershim.sock"
+      "perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh",
+      "rm --force /run/dockershim.sock",
+      "ln -sf /run/crio/crio.sock /run/dockershim.sock"
     ]
   }
 
   provisioner "shell" {
-    inline_shebang = "/bin/bash -e"
     inline = [
       "echo '>>> Configuring CRI-O for Sysbox'",
 
