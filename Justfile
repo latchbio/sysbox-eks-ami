@@ -14,3 +14,6 @@
 
 @build:
   packer build sysbox-eks.pkr.hcl
+
+@debug-build:
+  packer build -debug sysbox-eks.pkr.hcl
