@@ -246,7 +246,7 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_BIND_SERVICE",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple KILL",
       #
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.selinux' 'false'",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.selinux' false",
       #
       "sudo dasel put int --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.pids_limit' 16384",
       #
