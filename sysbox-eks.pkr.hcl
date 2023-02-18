@@ -277,4 +277,12 @@ build {
       "sudo dasel put string --parser toml --selector 'crio.runtime.runtimes.sysbox-runc.allowed_annotations.[0]' --file /etc/crio/crio.conf 'io.kubernetes.cri-o.userns-mode'",
     ]
   }
+
+  provisioner "shell" {
+    inline_shebang = "/bin/bash -e"
+    inline = [
+      "echo '>>> Removing /etc/cni/net.d'",
+      "sudo rm -r /etc/cni/net.d/",
+    ]
+  }
 }
