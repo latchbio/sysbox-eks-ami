@@ -217,55 +217,55 @@ build {
   #   ]
   # }
 
-  # provisioner "shell" {
-  #   inline_shebang = "/bin/bash -e"
-  #   inline = [
-  #     # Much of the rest of this is from inside the Sysbox K8s installer image
-  #     "echo '>>> Doing basic CRI-O configuration'",
+  provisioner "shell" {
+    inline_shebang = "/bin/bash -e"
+    inline = [
+      # Much of the rest of this is from inside the Sysbox K8s installer image
+      "echo '>>> Doing basic CRI-O configuration'",
 
-  #     "echo Installing Dasel",
-  #     "sudo curl --location \"$(curl --silent --show-error --location https://api.github.com/repos/tomwright/dasel/releases/tags/v1.24.3 | grep browser_download_url | grep linux_amd64 | cut -d\\\" -f 4 | head -n 1)\" --output /usr/local/bin/dasel",
-  #     "sudo chmod +x /usr/local/bin/dasel",
+      "echo Installing Dasel",
+      "sudo curl --location \"$(curl --silent --show-error --location https://api.github.com/repos/tomwright/dasel/releases/tags/v1.24.3 | grep browser_download_url | grep linux_amd64 | cut -d\\\" -f 4 | head -n 1)\" --output /usr/local/bin/dasel",
+      "sudo chmod +x /usr/local/bin/dasel",
 
-  #     # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.conmon_cgroup' 'pod'",
-  #     #
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETFCAP",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple AUDIT_WRITE",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_RAW",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SYS_CHROOT",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple MKNOD",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple CHOWN",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple DAC_OVERRIDE",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FSETID",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FOWNER",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETGID",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETUID",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETPCAP",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_BIND_SERVICE",
-  #     "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple KILL",
-  #     #
-  #     "sudo dasel put bool --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.selinux' false",
-  #     #
-  #     "sudo dasel put int --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.pids_limit' 16384",
-  #     #
-  #     "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
-  #     "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
+      # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.conmon_cgroup' 'pod'",
+      #
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETFCAP",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple AUDIT_WRITE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_RAW",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SYS_CHROOT",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple MKNOD",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple CHOWN",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple DAC_OVERRIDE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FSETID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FOWNER",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETGID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETUID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETPCAP",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_BIND_SERVICE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple KILL",
+      #
+      "sudo dasel put bool --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.selinux' false",
+      #
+      "sudo dasel put int --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.pids_limit' 16384",
+      #
+      "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
+      "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
 
-  #     "echo Configuring Kubelet to use CRI-O",
-  #     "sudo snap stop kubelet-eks",
-  #     "sudo snap set kubelet-eks container-runtime=remote",
-  #     "sudo snap set kubelet-eks container-runtime-endpoint=unix:///var/run/crio/crio.sock",
+      "echo Configuring Kubelet to use CRI-O",
+      "sudo snap stop kubelet-eks",
+      "sudo snap set kubelet-eks container-runtime=remote",
+      "sudo snap set kubelet-eks container-runtime-endpoint=unix:///var/run/crio/crio.sock",
 
-  #     # The EKS boot script does this for normal runtimes
-  #     "sudo chmod -R a+rX /etc/eks",
-  #     "sudo sed --in-place 's/CONTAINER_RUNTIME=\"dockerd\"/CONTAINER_RUNTIME=\"remote\"/' /etc/eks/bootstrap.sh",
-  #     "sudo perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh",
-  #     "sudo rm --force /run/dockershim.sock",
-  #     "sudo ln -sf /run/crio/crio.sock /run/dockershim.sock"
-  #   ]
-  # }
+      # The EKS boot script does this for normal runtimes
+      "sudo chmod -R a+rX /etc/eks",
+      "sudo sed --in-place 's/CONTAINER_RUNTIME=\"dockerd\"/CONTAINER_RUNTIME=\"remote\"/' /etc/eks/bootstrap.sh",
+      "sudo perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh",
+      "sudo rm --force /run/dockershim.sock",
+      "sudo ln -sf /run/crio/crio.sock /run/dockershim.sock"
+    ]
+  }
 
   provisioner "shell" {
     inline_shebang = "/bin/bash -e"
