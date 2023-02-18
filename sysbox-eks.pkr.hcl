@@ -10,7 +10,7 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.5.0"
+  default = "0.5.2"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
@@ -38,7 +38,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
+  ami_name        = "latch-bio/sysbox-eks-${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
@@ -169,53 +169,53 @@ build {
     ]
   }
 
-  provisioner "file" {
-    source      = "crio"
-    destination = "/home/ubuntu/crio"
-    max_retries = 3
-  }
+  #provisioner "file" {
+  #  source      = "crio"
+  #  destination = "/home/ubuntu/crio"
+  #  max_retries = 3
+  #}
+
+  #provisioner "shell" {
+  #  inline = [
+  #    "sudo mv crio /usr/bin/crio",
+  #    "sudo chmod +x /usr/bin/crio"
+  #  ]
+  #}
 
   provisioner "shell" {
+    inline_shebang = "/bin/bash -e"
+
     inline = [
-      "sudo mv crio /usr/bin/crio",
-      "sudo chmod +x /usr/bin/crio"
+      "echo '>>> Sysbox CRI-O patch'",
+      "echo Adding the Go backports repository",
+      "sudo apt-get install --yes --no-install-recommends software-properties-common",
+      "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+
+      "echo Installing Go",
+      "sudo apt-get update",
+      # todo(maximsmol): lock the golang version
+      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
+
+      "echo Cloning the patched CRI-O repository",
+      "git clone --branch v1.23-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+
+      "echo Building",
+      "cd cri-o",
+      "make binaries",
+
+      "echo Installing the patched binary",
+      "sudo mv bin/crio /usr/bin/crio",
+      "sudo chmod +x /usr/bin/crio",
+
+
+      "echo Cleaning up",
+      "cd ..",
+      "rm -rf cri-o",
+
+      "echo Restarting CRI-O",
+      "sudo systemctl restart crio"
     ]
   }
-
-  # provisioner "shell" {
-  #   inline_shebang = "/bin/bash -e"
-
-  #   inline = [
-  #     "echo '>>> Sysbox CRI-O patch'",
-  #     "echo Adding the Go backports repository",
-  #     "sudo apt-get install --yes --no-install-recommends software-properties-common",
-  #     "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
-
-  #     "echo Installing Go",
-  #     "sudo apt-get update",
-  #     # todo(maximsmol): lock the golang version
-  #     "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
-
-  #     "echo Cloning the patched CRI-O repository",
-  #     "git clone --branch v1.23-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
-
-  #     "echo Building",
-  #     "cd cri-o",
-  #     "make binaries",
-
-  #     "echo Installing the patched binary",
-  #     "sudo mv bin/crio /usr/bin/crio",
-  #     "sudo chmod +x /usr/bin/crio",
-
-
-  #     "echo Cleaning up",
-  #     "cd ..",
-  #     "rm -rf cri-o",
-
-  #     "echo Restarting CRI-O",
-  #     "sudo systemctl restart crio"
-  #   ]
-  # }
 
   provisioner "shell" {
     inline_shebang = "/bin/bash -e"
@@ -224,7 +224,7 @@ build {
       "echo '>>> Doing basic CRI-O configuration'",
 
       "echo Installing Dasel",
-      "sudo curl --location \"$(curl --silent --show-error --location https://api.github.com/repos/tomwright/dasel/releases/latest | grep browser_download_url | grep linux_amd64 | cut -d\\\" -f 4 | head -n 1)\" --output /usr/local/bin/dasel",
+      "sudo curl --location \"$(curl --silent --show-error --location https://api.github.com/repos/tomwright/dasel/releases/tags/v1.24.3 | grep browser_download_url | grep linux_amd64 | cut -d\\\" -f 4 | head -n 1)\" --output /usr/local/bin/dasel",
       "sudo chmod +x /usr/local/bin/dasel",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
