@@ -86,8 +86,9 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
-      "echo '>>> Fix docker startup issue'",
-      "sudo sed -i '/\"bridge\": \"none\",/d' /etc/docker/daemon.json", # supplying both bridge (-b) and -bip causes docker to crash downstream
+      "echo '>>> Docker bridge config'",
+      # Supplying both bridge (`-b`) and `-bip` causes Docker to crash later
+      "sudo sed -i '/\"bridge\": \"none\",/d' /etc/docker/daemon.json",
       "sudo systemctl start docker"
     ]
   }
@@ -226,7 +227,7 @@ build {
 
       "echo Installing the patched binary",
       "sudo mv bin/crio /usr/bin/crio",
-      "sudo chmod +x /usr/bin/crio",
+      "sudo chmod u+x /usr/bin/crio",
 
 
       "echo Cleaning up",
@@ -236,6 +237,11 @@ build {
       "echo Restarting CRI-O",
       "sudo systemctl restart crio"
     ]
+  }
+
+  provisioner "file" {
+    source      = "bootstrap.sh.patch"
+    destination = "/etc/eks/bootstrap.sh.patch"
   }
 
   provisioner "shell" {
@@ -248,7 +254,7 @@ build {
 
       "echo Installing Dasel",
       "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 --output /usr/local/bin/dasel",
-      "sudo chmod +x /usr/local/bin/dasel",
+      "sudo chmod u+x /usr/local/bin/dasel",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
@@ -269,17 +275,8 @@ build {
       #
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
-
-      "echo Configuring Kubelet to use CRI-O",
-      "sudo snap stop kubelet-eks",
-      "sudo snap set kubelet-eks container-runtime=remote",
-      "sudo snap set kubelet-eks container-runtime-endpoint=unix:///var/run/crio/crio.sock",
-
-      # The EKS boot script does this for normal runtimes
-      "sudo sed --in-place 's/CONTAINER_RUNTIME=\"dockerd\"/CONTAINER_RUNTIME=\"remote\"/' /etc/eks/bootstrap.sh",
-      "sudo perl -0777 -i.bkp -p -e 's/echo \"Container runtime \\$\\{CONTAINER_RUNTIME\\} is not supported.\"\\n    exit 1/echo \"Custom container runtime\"/' /etc/eks/bootstrap.sh",
-      "sudo rm --force /run/dockershim.sock",
-      "sudo ln -sf /run/crio/crio.sock /run/dockershim.sock"
+      #
+      "patch --backup /etc/eks/bootstrap.sh bootstrap.sh.patch"
     ]
   }
 

@@ -1,0 +1,17 @@
+143c143
+< CONTAINER_RUNTIME="dockerd"
+---
+> CONTAINER_RUNTIME="cri-o"
+518a519,530
+> elif [[ "$CONTAINER_RUNTIME" = "cri-o" ]]; then
+>     echo "Container runtime is CRI-O"
+>     snap set kubelet-eks \
+>         container-runtime=remote \
+>         container-runtime-endpoint=unix:///var/run/crio/crio.sock
+>
+>     dasel put\
+>       str \
+>       --parser toml \
+>       --file /etc/crio/crio.conf \
+>       --selector 'crio.image.pause_image' \
+>       "${PAUSE_CONTAINER}"
