@@ -38,7 +38,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
+  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}_old-base/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
@@ -54,10 +54,9 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-*"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20220623"
     }
-    most_recent = true
-    owners      = ["099720109477"]
+    owners = ["099720109477"]
   }
 
   region        = "us-west-2"
@@ -69,6 +68,7 @@ build {
   name = "sysbox-eks"
   sources = [
     "source.amazon-ebs.ubuntu-eks"
+
   ]
 
   provisioner "shell" {
@@ -219,7 +219,7 @@ build {
       "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
 
       "echo Cloning the patched CRI-O repository",
-      "git clone --branch v1.23-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+      "git clone --branch v1.21-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
 
       "echo Building",
       "cd cri-o",
@@ -241,7 +241,14 @@ build {
 
   provisioner "file" {
     source      = "bootstrap.sh.patch"
-    destination = "/etc/eks/bootstrap.sh.patch"
+    destination = "/home/ubuntu/bootstrap.sh.patch"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "sudo mv /home/ubuntu/bootstrap.sh.patch /etc/eks/bootstrap.sh.patch",
+    ]
   }
 
   provisioner "shell" {
@@ -276,7 +283,7 @@ build {
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
       #
-      "patch --backup /etc/eks/bootstrap.sh bootstrap.sh.patch"
+      "sudo patch /etc/eks/bootstrap.sh /etc/eks/bootstrap.sh.patch"
     ]
   }
 
