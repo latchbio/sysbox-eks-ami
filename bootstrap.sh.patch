@@ -1,17 +1,29 @@
-143c143
-< CONTAINER_RUNTIME="dockerd"
----
-> CONTAINER_RUNTIME="cri-o"
-518a519,530
-> elif [[ "$CONTAINER_RUNTIME" = "cri-o" ]]; then
->     echo "Container runtime is CRI-O"
->     snap set kubelet-eks \
->         container-runtime=remote \
->         container-runtime-endpoint=unix:///var/run/crio/crio.sock
->
->     dasel put\
->       str \
->       --parser toml \
->       --file /etc/crio/crio.conf \
->       --selector 'crio.image.pause_image' \
->       "${PAUSE_CONTAINER}"
+--- bootstrap.sh	2023-02-24 10:39:44.000000000 -0500
++++ bootstrap.patched.sh	2023-02-24 10:42:36.000000000 -0500
+@@ -140,7 +140,7 @@
+ API_RETRY_ATTEMPTS="${API_RETRY_ATTEMPTS:-3}"
+ DOCKER_CONFIG_JSON="${DOCKER_CONFIG_JSON:-}"
+ PAUSE_CONTAINER_VERSION="${PAUSE_CONTAINER_VERSION:-3.1-eksbuild.1}"
+-CONTAINER_RUNTIME="dockerd"
++CONTAINER_RUNTIME="cri-o"
+ IP_FAMILY="${IP_FAMILY:-}"
+ SERVICE_IPV6_CIDR="${SERVICE_IPV6_CIDR:-}"
+ 
+@@ -508,6 +508,17 @@
+     systemctl restart docker
+     snap set kubelet-eks \
+ 	container-runtime=docker
++elif [[ "$CONTAINER_RUNTIME" = "cri-o" ]]; then
++    echo "Container runtime is CRI-O"
++    snap set kubelet-eks \
++        container-runtime=remote \
++        container-runtime-endpoint=unix:///var/run/crio/crio.sock
++    dasel put\
++      str \
++      --parser toml \
++      --file /etc/crio/crio.conf \
++      --selector 'crio.image.pause_image' \
++      "${PAUSE_CONTAINER}"
+ else
+     echo "Container runtime ${CONTAINER_RUNTIME} is not supported."
+     exit 1

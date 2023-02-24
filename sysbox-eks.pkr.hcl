@@ -283,7 +283,7 @@ build {
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
       #
-      "sudo patch /etc/eks/bootstrap.sh /etc/eks/bootstrap.sh.patch"
+      "sudo patch /usr/local/share/eks/bootstrap.sh /etc/eks/bootstrap.sh.patch"
     ]
   }
 
