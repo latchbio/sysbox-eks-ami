@@ -8,7 +8,7 @@
 +CONTAINER_RUNTIME="cri-o"
  IP_FAMILY="${IP_FAMILY:-}"
  SERVICE_IPV6_CIDR="${SERVICE_IPV6_CIDR:-}"
- 
+
 @@ -508,6 +508,17 @@
      systemctl restart docker
      snap set kubelet-eks \
@@ -18,8 +18,8 @@
 +    snap set kubelet-eks \
 +        container-runtime=remote \
 +        container-runtime-endpoint=unix:///var/run/crio/crio.sock
-+    dasel put\
-+      str \
++    dasel put \
++      string \
 +      --parser toml \
 +      --file /etc/crio/crio.conf \
 +      --selector 'crio.image.pause_image' \
