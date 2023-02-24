@@ -247,7 +247,7 @@ build {
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
-      "sudo mv /home/ubuntu/bootstrap.sh.patch /etc/eks/bootstrap.sh.patch",
+      "sudo mv /home/ubuntu/bootstrap.sh.patch /usr/local/share/eks/bootstrap.sh.patch",
     ]
   }
 
@@ -282,8 +282,8 @@ build {
       #
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
-      # /etc/eks/boostrap.sh is a symlink to /usr/local/share/eks/bootstrap.sh
-      "sudo patch /usr/local/share/eks/bootstrap.sh /etc/eks/bootstrap.sh.patch"
+      # /usr/local/share/eks/bootstrap.sh is symlinked to /etc/eks/boostrap.sh
+      "sudo patch /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
     ]
   }
 
