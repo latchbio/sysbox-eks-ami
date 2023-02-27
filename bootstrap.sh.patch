@@ -18,8 +18,8 @@
 +    snap set kubelet-eks \
 +        container-runtime=remote \
 +        container-runtime-endpoint=unix:///var/run/crio/crio.sock
-+    dasel put\
-+      str \
++    dasel put \
++      string \
 +      --parser toml \
 +      --file /etc/crio/crio.conf \
 +      --selector 'crio.image.pause_image' \
