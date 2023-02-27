@@ -49,7 +49,11 @@ source "amazon-ebs" "ubuntu-eks" {
     K8sVersion    = var.k8s_version
     SysboxVersion = var.sysbox_version
 
-    BaseImage = "{{ .SourceAMIName }}"
+    BaseImageID      = "{{ .SourceAMI }}"
+    BaseImageOwnerID = "{{ .SourceAMIOwner }}"
+
+    BaseImageOwnerName = "{{ .SourceAMIOwnerName }}"
+    BaseImageName      = "{{ .SourceAMIName }}"
   }
 
   source_ami_filter {
@@ -283,7 +287,7 @@ build {
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
       # /usr/local/share/eks/bootstrap.sh is symlinked to /etc/eks/boostrap.sh
-      "sudo patch /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
+      "sudo patch --backup /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
     ]
   }
 
