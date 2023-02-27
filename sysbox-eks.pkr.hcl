@@ -38,7 +38,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}_patch-0/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
+  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}_patch-1/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
