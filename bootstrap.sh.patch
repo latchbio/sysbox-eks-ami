@@ -1,5 +1,5 @@
---- bootstrap.sh	2023-02-24 10:39:44.000000000 -0500
-+++ bootstrap.patched.sh	2023-02-24 10:42:36.000000000 -0500
+--- bootstrap.sh	2023-02-27 11:24:38.000000000 -0800
++++ bootstrap.patched.sh	2023-02-27 11:24:32.000000000 -0800
 @@ -140,7 +140,7 @@
  API_RETRY_ATTEMPTS="${API_RETRY_ATTEMPTS:-3}"
  DOCKER_CONFIG_JSON="${DOCKER_CONFIG_JSON:-}"
@@ -8,8 +8,8 @@
 +CONTAINER_RUNTIME="cri-o"
  IP_FAMILY="${IP_FAMILY:-}"
  SERVICE_IPV6_CIDR="${SERVICE_IPV6_CIDR:-}"
-
-@@ -508,6 +508,17 @@
+ 
+@@ -508,9 +508,21 @@
      systemctl restart docker
      snap set kubelet-eks \
  	container-runtime=docker
@@ -18,12 +18,18 @@
 +    snap set kubelet-eks \
 +        container-runtime=remote \
 +        container-runtime-endpoint=unix:///var/run/crio/crio.sock
-+    dasel put \
-+      string \
++    dasel put\
++      str \
 +      --parser toml \
 +      --file /etc/crio/crio.conf \
 +      --selector 'crio.image.pause_image' \
 +      "${PAUSE_CONTAINER}"
++    rm --force /run/dockershim.sock
++    ln -sf /run/crio/crio.sock /run/dockershim.sock
  else
-     echo "Container runtime ${CONTAINER_RUNTIME} is not supported."
-     exit 1
+-    echo "Container runtime ${CONTAINER_RUNTIME} is not supported."
+-    exit 1
++    echo "Custom container runtime."
+ fi
+ 
+ echo "Configuring kubelet snap"
