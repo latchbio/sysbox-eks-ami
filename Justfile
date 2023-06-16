@@ -13,4 +13,4 @@
   packer validate .
 
 @build:
-  packer build sysbox-eks.pkr.hcl
+  packer build -debug sysbox-eks.pkr.hcl

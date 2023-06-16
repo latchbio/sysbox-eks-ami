@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.21"
+  default = "1.22"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -90,8 +90,29 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
+      "echo '>>> Docker Install'",
+      # Supplying both bridge (`-b`) and `-bip` causes Docker to crash later
+      "sudo apt-get install ca-certificates curl gnupg -y",
+      "sudo install -m 0755 -d /etc/apt/keyrings",
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg",
+      "sudo chmod a+r /etc/apt/keyrings/docker.gpg",
+      "echo deb [arch=\"$(dpkg --print-architecture)\" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\")\" stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+      "sudo apt-get update",
+      "sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y",
+
+      "echo '>>> Git Install'",
+      "sudo apt-get install git -y",
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
       "echo '>>> Docker bridge config'",
       # Supplying both bridge (`-b`) and `-bip` causes Docker to crash later
+      "sudo touch /etc/docker/daemon.json",
       "sudo sed -i '/\"bridge\": \"none\",/d' /etc/docker/daemon.json",
       "sudo systemctl start docker"
     ]
@@ -223,7 +244,7 @@ build {
       "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
 
       "echo Cloning the patched CRI-O repository",
-      "git clone --branch v1.21-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+      "git clone --branch v1.22-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
 
       "echo Building",
       "cd cri-o",
