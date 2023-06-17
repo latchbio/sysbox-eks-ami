@@ -1,5 +1,5 @@
---- bootstrap.sh	2023-06-14 19:22:28.000000000 -0700
-+++ bootstrap.patched.sh	2023-06-14 19:27:48.000000000 -0700
+--- bootstrap.sh	2023-06-14 19:28:47.000000000 -0700
++++ bootstrap.patched.sh	2023-06-17 13:22:55.000000000 -0700
 @@ -140,7 +140,7 @@
  API_RETRY_ATTEMPTS="${API_RETRY_ATTEMPTS:-3}"
  DOCKER_CONFIG_JSON="${DOCKER_CONFIG_JSON:-}"
@@ -9,7 +9,7 @@
  IP_FAMILY="${IP_FAMILY:-}"
  SERVICE_IPV6_CIDR="${SERVICE_IPV6_CIDR:-}"
  
-@@ -508,9 +508,23 @@
+@@ -508,9 +508,21 @@
      systemctl restart docker
      snap set kubelet-eks \
  	container-runtime=docker
@@ -29,8 +29,6 @@
  else
 -    echo "Container runtime ${CONTAINER_RUNTIME} is not supported."
 -    exit 1
-+  log "ERROR: unsupported container runtime: '${CONTAINER_RUNTIME}'"
-+  exit 1
 +  echo "Custom container runtime."
  fi
  
