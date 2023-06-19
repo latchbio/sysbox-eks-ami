@@ -38,7 +38,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}_patch-1/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
+  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}_patch-1/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-rev-0"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
@@ -81,7 +81,7 @@ build {
       "set -o pipefail -o errexit",
 
       "echo Updating apt",
-      "sudo apt-get update",
+      "sudo apt-get update -y",
     ]
   }
 
@@ -119,7 +119,8 @@ build {
       "echo '>>> Shiftfs'",
 
       "echo Installing dependencies",
-      "sudo apt-get install --yes --no-install-recommends make dkms",
+      "sudo apt-get update",
+      "sudo apt-get install --yes --no-install-recommends make dkms git",
 
       "echo Detecting kernel version to determine the correct branch",
       "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
@@ -299,6 +300,17 @@ build {
 
       "echo '>>> Removing /etc/cni/net.d'",
       "sudo rm -r /etc/cni/net.d/",
+    ]
+  }
+
+  # https://github.com/containers/podman/issues/11745
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Disabling `[machine]` key in /usr/share/containers/containers.conf'",
+      "sudo perl -i -pe 's/^\\[machine\\]/#$&/' /usr/share/containers/containers.conf",
     ]
   }
 }
