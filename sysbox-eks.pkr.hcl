@@ -38,8 +38,8 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}_patch-1/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-rev-0"
-  ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
+  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server/v7"
+  ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}) with NVIDIA GPU support, on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
     Linux         = "Ubuntu"
@@ -72,7 +72,6 @@ build {
   name = "sysbox-eks"
   sources = [
     "source.amazon-ebs.ubuntu-eks"
-
   ]
 
   provisioner "shell" {
@@ -186,11 +185,14 @@ build {
 
   # provisioner "shell" {
   #   inline = [
-  #     "echo >>> Installing prebuilt patched CRI-O",
+  #     "echo '>>> Installing prebuilt patched CRI-O'",
   #     "sudo mv crio /usr/bin/crio",
-  #
+
   #     "echo Setting permissions",
   #     "sudo chmod u+x /usr/bin/crio"
+
+  #     # "echo Restarting CRI-O",
+  #     # "sudo systemctl restart crio"
   #   ]
   # }
 
@@ -311,6 +313,37 @@ build {
 
       "echo '>>> Disabling `[machine]` key in /usr/share/containers/containers.conf'",
       "sudo perl -i -pe 's/^\\[machine\\]/#$&/' /usr/share/containers/containers.conf",
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+      "export DEBIAN_FRONTEND=noninteractive",
+
+      "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
+      "sudo dpkg -i cuda-keyring_1.0-1_all.deb",
+      "rm cuda-keyring_1.0-1_all.deb",
+
+      "sudo apt-get update",
+      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install nvidia-driver-530 nvidia-container-toolkit",
+
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card0",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD128",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia0",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidiactl",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-modeset",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm-tools",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/vga_arbiter",
+
+      "sudo dasel put string --parser toml --selector 'crio.runtime.runtimes.sysbox-runc.allowed_annotations.[1]' --file /etc/crio/crio.conf 'io.kubernetes.cri-o.Devices'",
+
+      "sudo dasel put string --parser toml --selector 'crio.runtime.default_runtime' --file /etc/crio/crio.conf 'nvidia'",
+      "sudo dasel put object --parser toml --selector 'crio.runtime.runtimes.nvidia' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/nvidia-container-runtime'",
+      "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
+      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'"
     ]
   }
 }
