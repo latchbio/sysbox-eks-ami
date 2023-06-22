@@ -10,7 +10,7 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.5.2"
+  default = "0.6.2"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.22"
+  default = "1.23"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -38,7 +38,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server/v7"
+  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}) with NVIDIA GPU support, on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
@@ -58,7 +58,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20220623"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20230616"
     }
     owners = ["099720109477"]
   }
@@ -96,6 +96,8 @@ build {
       "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_amd64.deb",
 
       "echo Installing Sysbox package dependencies",
+
+      "sudo apt-get install rsync -y",
 
       "echo Installing the Sysbox package",
       "sudo dpkg --install ./sysbox-ce_*.linux_amd64.deb || true", # will fail due to missing dependencies, fixed in the next step
@@ -214,7 +216,7 @@ build {
       "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
 
       "echo Cloning the patched CRI-O repository",
-      "git clone --branch v1.22-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+      "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
 
       "echo Building",
       "cd cri-o",
@@ -302,17 +304,6 @@ build {
 
       "echo '>>> Removing /etc/cni/net.d'",
       "sudo rm -r /etc/cni/net.d/",
-    ]
-  }
-
-  # https://github.com/containers/podman/issues/11745
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      "echo '>>> Disabling `[machine]` key in /usr/share/containers/containers.conf'",
-      "sudo perl -i -pe 's/^\\[machine\\]/#$&/' /usr/share/containers/containers.conf",
     ]
   }
 
