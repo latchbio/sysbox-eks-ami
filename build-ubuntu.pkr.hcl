@@ -5,6 +5,13 @@ build {
 
   ]
 
+  # Can be used to gen the current bootstrap.sh to update the patch
+#   provisioner "file" {
+#     source      = "/usr/local/share/eks/bootstrap.sh"
+#     destination = "current_bootstrap.sh"
+#     direction   = "download"
+#   }
+
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
