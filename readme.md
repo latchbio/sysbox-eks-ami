@@ -8,7 +8,7 @@ Packer script for building an AMI with pre-installed Sysbox based on an Ubuntu E
 1. Run `packer init .`
 1. Ensure you have a patched CRI-O binary (for the Linux kernel 5.13)
    [The packer definition](./sysbox-eks.pkr.hcl) contains commented-out instructions on building the patched binary as part of the packer build. This is a very slow process so by default it copies the file instead. You could run the same commands on any Ubuntu 20.04 system and `scp` the binary to use it here.
-1. Run `packer build sysbox-eks.pkr.hcl`
+1. Run `packer build .`
 
 ## Differences from the Ubuntu EKS AMI
 
