@@ -196,35 +196,35 @@ build {
       "sudo chmod u+x /usr/local/bin/dasel",
 
       # Disable selinux for now.
-	    "sudo dasel put bool --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.selinux' false",
+	    "sudo dasel put bool --parser toml --file /etc/crio/crio.conf 'crio.runtime.selinux' false",
 
       # overlayfs with metacopy=on improves startup time of CRI-O rootless containers significantly
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.storage_driver' 'overlay'",
-	    "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.storage_option.[]' 'overlay.mountopt=metacopy=on'",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.storage_driver' 'overlay'",
+	    "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.storage_option.[]' 'overlay.mountopt=metacopy=on'",
 
       #
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' CHOWN",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' DAC_OVERRIDE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' FSETID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' FOWNER",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' SETUID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' SETGID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' SETPCAP",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' SETFCAP",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' NET_BIND_SERVICE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' KILL",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' AUDIT_WRITE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' NET_RAW",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' SYS_CHROOT",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector -m 'crio.runtime.default_capabilities.[]' MKNOD",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' CHOWN",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' DAC_OVERRIDE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' FSETID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' FOWNER",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETUID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETGID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETPCAP",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETFCAP",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' NET_BIND_SERVICE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' KILL",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' AUDIT_WRITE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' NET_RAW",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SYS_CHROOT",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' MKNOD",
       #
-      "sudo dasel put int --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.pids_limit' 16384",
+      "sudo dasel put int --parser toml --file /etc/crio/crio.conf 'crio.runtime.pids_limit' 16384",
 
       # Create 'crio.image' table (required for 'pause_image' settings).
-	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf --selector '.crio.image'",
+	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.image'",
 
 	    # Create 'crio.network' table (required for 'network_dir' settings).
-	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf --selector '.crio.network'",
+	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.network'",
 
       #
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
@@ -242,8 +242,8 @@ build {
       "echo '>>> Configuring CRI-O for Sysbox'",
 
       "echo Adding Sysbox to CRI-O runtimes",
-      "sudo dasel put object --parser toml --selector -m 'crio.runtime.runtimes.sysbox-runc' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/sysbox-runc' --type string 'runtime_type=oci'",
-      "sudo dasel put string --parser toml --selector -m 'crio.runtime.runtimes.sysbox-runc.allowed_annotations.[0]' --file /etc/crio/crio.conf 'io.kubernetes.cri-o.userns-mode'",
+      "sudo dasel put object --parser toml -m 'crio.runtime.runtimes.sysbox-runc' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/sysbox-runc' --type string 'runtime_type=oci'",
+      "sudo dasel put string --parser toml -m 'crio.runtime.runtimes.sysbox-runc.allowed_annotations.[0]' --file /etc/crio/crio.conf 'io.kubernetes.cri-o.userns-mode'",
     ]
   }
 
