@@ -5,7 +5,7 @@ variable "aws_target_regions" {
 
 variable "img_name" {
   type    = string
-  default = "pluraldev-02"
+  default = "pluraldev-03"
 }
 
 variable "ubuntu_version" {

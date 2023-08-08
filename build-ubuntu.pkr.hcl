@@ -202,6 +202,12 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.storage_driver' 'overlay'",
 	    "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.storage_option.[]' 'overlay.mountopt=metacopy=on'",
 
+      # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
+      # this is done by the kubelet-config-helper.sh
+      # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L861
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.runtime.cgroup_manager' 'cgroupfs'",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.runtime.conmon_cgroup' 'pod'",
+
       #
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' CHOWN",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' DAC_OVERRIDE",
@@ -225,6 +231,11 @@ build {
 
 	    # Create 'crio.network' table (required for 'network_dir' settings).
 	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.network'",
+
+      # needed for networking
+      # this is done by the kubelet-config-helper.sh
+      # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L833
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.network.plugin_dirs.[]' '/opt/cni/bin'",
 
       #
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
