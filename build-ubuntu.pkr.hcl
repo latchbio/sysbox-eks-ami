@@ -5,12 +5,12 @@ build {
 
   ]
 
-  # Can be used to gen the current bootstrap.sh to update the patch
-#   provisioner "file" {
-#     source      = "/usr/local/share/eks/bootstrap.sh"
-#     destination = "current_bootstrap.sh"
-#     direction   = "download"
-#   }
+  # # Can be used to gen the current bootstrap.sh to update the patch
+  # provisioner "file" {
+  #   source      = "/usr/local/share/eks/bootstrap.sh"
+  #   destination = "current_bootstrap.sh"
+  #   direction   = "download"
+  # }
 
   # equivalent to install_package_deps() function
   # TODO: seems like installing fuse removes fuse3. Which is needed by sysbox? According to arch package docs it hase fuse2 as a dependency.
@@ -26,6 +26,9 @@ build {
     ]
   }
 
+  ###################
+  ## Install CRI-O ##
+  ###################
 
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
@@ -59,14 +62,13 @@ build {
     ]
   }
 
-
   ## Uncomment this section to install from a patched CRI-O binary
+  # part of do_install_crio() function
   provisioner "file" {
     source      = "tmp/crio/${var.architecture}/v${var.k8s_version}/crio-patched"
     destination = "/home/ubuntu/crio"
     max_retries = 3
   }
-
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
@@ -83,44 +85,68 @@ build {
     ]
   }
 
-  ## Comment this section to install from a patched CRI-O binary
-  # provisioner "shell" {
-  #   inline_shebang = "/usr/bin/env bash"
+  # equivalent to config_crio() function
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
 
-  #   inline = [
-  #     "set -o pipefail -o errexit",
+      # Much of the rest of this is from inside the Sysbox K8s installer image
+      "echo '>>> Doing basic CRI-O configuration'",
 
-  #     "echo '>>> Sysbox CRI-O patch'",
-  #     "echo Adding the Go backports repository",
-  #     "sudo apt-get install --yes --no-install-recommends software-properties-common",
-  #     "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+      "echo Installing Dasel",
+      "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_${var.architecture} --output /usr/local/bin/dasel",
+      "sudo chmod u+x /usr/local/bin/dasel",
 
-  #     "echo Installing Go",
-  #     "sudo apt-get update",
-  #     # todo(maximsmol): lock the golang version
-  #     "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
+      # Disable selinux for now.
+	    "sudo dasel put bool --parser toml --file /etc/crio/crio.conf 'crio.runtime.selinux' false",
 
-  #     "echo Cloning the patched CRI-O repository",
-  #     "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+      # # Add user "containers" to the /etc/subuid and /etc/subgid files
+      # NOTE: this is done in the next step with config_subid_range.sh
 
-  #     "echo Building",
-  #     "cd cri-o",
-  #     "make binaries",
+      # Set capabilities to match default caps in containerd/docker
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' CHOWN",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' DAC_OVERRIDE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' FSETID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' FOWNER",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETUID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETGID",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETPCAP",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETFCAP",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' NET_BIND_SERVICE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' KILL",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' AUDIT_WRITE",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' NET_RAW",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SYS_CHROOT",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' MKNOD",
 
-  #     "echo Installing the patched binary",
-  #     "sudo mv bin/crio /usr/bin/crio",
-  #     "sudo chmod u+x /usr/bin/crio",
+      # Create 'crio.image' table (required for 'pause_image' settings).
+	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.image'",
 
+	    # Create 'crio.network' table (required for 'network_dir' settings).
+	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.network'",
 
-  #     "echo Cleaning up",
-  #     "cd ..",
-  #     "rm -rf cri-o",
+      # CRI-O puts a default limit of 1024 processes per pod; this is too small for
+      # Sysbox pods, since these run sometimes complex software such as Docker,
+      # K8s, etc. Thus we increase this to 16K processes per pod. Since the max
+      # limit for Linux is 4M (see /proc/sys/kernel/pid_max), this allows up to
+      # ~256 Sysbox containers each consuming 16K processes on a given host. It
+      # also constraints a malicious container executing a fork bomb to 16K
+      # processes, well below the kernel's max pid limit.
+      "sudo dasel put int --parser toml --file /etc/crio/crio.conf 'crio.runtime.pids_limit' 16384",
+    ]
+  }
 
-  #     "echo Restarting CRI-O",
-  #     "sudo systemctl restart crio"
-  #   ]
-  # }
+  # equivalent to get_subid_limits() and config_subid_range() functions
+  provisioner "shell" {
+    script = "scripts/config_subid_range.sh"
+  }
 
+  ####################
+  ## Install Sysbox ##
+  ####################
+
+  # equivalent to install_shiftfs() function
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
@@ -229,30 +255,54 @@ build {
     ]
   }
 
+  # equivalent to config_crio_for_sysbox() function
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
 
+      "echo 'Adding Sysbox to CRI-O config ...'",
 
-  # provisioner "shell" {
-  #   inline_shebang = "/usr/bin/env bash"
-  #   inline = [
-  #     "set -o pipefail -o errexit",
-  #     "export DEBIAN_FRONTEND=noninteractive",
+      # overlayfs with metacopy=on improves startup time of CRI-O rootless containers significantly
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.storage_driver' 'overlay'",
+	    "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.storage_option.[]' 'overlay.mountopt=metacopy=on'",
 
-  #     # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
-  #     "echo '>>> Sysbox'",
-  #     "echo Downloading the Sysbox package",
-  #     "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_${var.architecture}.deb",
+      # Add Sysbox to CRI-O's runtime list
+      "sudo dasel put object --parser toml -m 'crio.runtime.runtimes.sysbox-runc' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/sysbox-runc' --type string 'runtime_type=oci'",
+      "sudo dasel put string --parser toml -m 'crio.runtime.runtimes.sysbox-runc.allowed_annotations.[0]' --file /etc/crio/crio.conf 'io.kubernetes.cri-o.userns-mode'",
+    ]
+  }
 
-  #     "echo Installing the Sysbox package",
-  #     "sudo dpkg --install ./sysbox-ce_*.linux_${var.architecture}.deb || true", # will fail due to missing dependencies, fixed in the next step
+  # equivalent to adjust_crio_config_dependencies() function (from kubelet-config-helpe.sh that usually runs at runtime)
+  # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L861
+  # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L833
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
 
-  #     "echo 'Fixing the Sysbox package (installing dependencies)'",
+      # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
+      # this is done by the kubelet-config-helper.sh
+      # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L861
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.runtime.cgroup_manager' 'cgroupfs'",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.runtime.conmon_cgroup' 'pod'",
 
-  #     "sudo --preserve-env=DEBIAN_FRONTEND apt-get install --fix-broken --yes --no-install-recommends",
+      # needed for networking
+      # this is done by the kubelet-config-helper.sh
+      # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L833
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.network.plugin_dirs.[]' '/opt/cni/bin'",
+    ]
+  }
 
-  #     "echo Cleaning up",
-  #     "rm ./sysbox-ce_*.linux_${var.architecture}.deb",
-  #   ]
-  # }
+  # TODO: this is sus as it isn't done upstream
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Removing /etc/cni/net.d'",
+      "sudo rm -r /etc/cni/net.d/",
+    ]
+  }
 
   provisioner "file" {
     source      = "bootstrap.sh.patch"
@@ -263,91 +313,7 @@ build {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "sudo mv /home/ubuntu/bootstrap.sh.patch /usr/local/share/eks/bootstrap.sh.patch",
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      # Much of the rest of this is from inside the Sysbox K8s installer image
-      "echo '>>> Doing basic CRI-O configuration'",
-
-      "echo Installing Dasel",
-      "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_${var.architecture} --output /usr/local/bin/dasel",
-      "sudo chmod u+x /usr/local/bin/dasel",
-
-      # Disable selinux for now.
-	    "sudo dasel put bool --parser toml --file /etc/crio/crio.conf 'crio.runtime.selinux' false",
-
-      # overlayfs with metacopy=on improves startup time of CRI-O rootless containers significantly
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.storage_driver' 'overlay'",
-	    "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.storage_option.[]' 'overlay.mountopt=metacopy=on'",
-
-      # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
-      # this is done by the kubelet-config-helper.sh
-      # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L861
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.runtime.cgroup_manager' 'cgroupfs'",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf 'crio.runtime.conmon_cgroup' 'pod'",
-
-      #
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' CHOWN",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' DAC_OVERRIDE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' FSETID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' FOWNER",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETUID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETGID",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETPCAP",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SETFCAP",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' NET_BIND_SERVICE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' KILL",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' AUDIT_WRITE",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' NET_RAW",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' SYS_CHROOT",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.runtime.default_capabilities.[]' MKNOD",
-      #
-      "sudo dasel put int --parser toml --file /etc/crio/crio.conf 'crio.runtime.pids_limit' 16384",
-
-      # Create 'crio.image' table (required for 'pause_image' settings).
-	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.image'",
-
-	    # Create 'crio.network' table (required for 'network_dir' settings).
-	    "sudo dasel put document --parser toml --file /etc/crio/crio.conf '.crio.network'",
-
-      # needed for networking
-      # this is done by the kubelet-config-helper.sh
-      # see https://github.com/nestybox/sysbox-pkgr/blob/b560194d516b300e9e201274a29348d3626055c1/k8s/scripts/kubelet-config-helper.sh#L833
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf -m 'crio.network.plugin_dirs.[]' '/opt/cni/bin'",
-
-      #
-      "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
-      "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
-      # /usr/local/share/eks/bootstrap.sh is symlinked to /etc/eks/boostrap.sh
       "sudo patch --backup /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      "echo '>>> Configuring CRI-O for Sysbox'",
-
-      "echo Adding Sysbox to CRI-O runtimes",
-      "sudo dasel put object --parser toml -m 'crio.runtime.runtimes.sysbox-runc' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/sysbox-runc' --type string 'runtime_type=oci'",
-      "sudo dasel put string --parser toml -m 'crio.runtime.runtimes.sysbox-runc.allowed_annotations.[0]' --file /etc/crio/crio.conf 'io.kubernetes.cri-o.userns-mode'",
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      "echo '>>> Removing /etc/cni/net.d'",
-      "sudo rm -r /etc/cni/net.d/",
     ]
   }
 }
