@@ -5,7 +5,12 @@ variable "aws_target_regions" {
 
 variable "img_name" {
   type    = string
-  default = "pluraldev-03"
+  default = "pluraldev-04-prebuilt-crio"
+}
+
+variable "architecture" {
+  type    = string
+  default = "amd64"
 }
 
 variable "ubuntu_version" {

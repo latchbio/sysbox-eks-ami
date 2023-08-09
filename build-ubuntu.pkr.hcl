@@ -31,21 +31,21 @@ build {
       # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
       "echo '>>> Sysbox'",
       "echo Downloading the Sysbox package",
-      "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_amd64.deb",
+      "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_${var.architecture}.deb",
 
       "echo Installing Sysbox package dependencies",
 
       "sudo apt-get install rsync -y",
 
       "echo Installing the Sysbox package",
-      "sudo dpkg --install ./sysbox-ce_*.linux_amd64.deb || true", # will fail due to missing dependencies, fixed in the next step
+      "sudo dpkg --install ./sysbox-ce_*.linux_${var.architecture}.deb || true", # will fail due to missing dependencies, fixed in the next step
 
       "echo 'Fixing the Sysbox package (installing dependencies)'",
 
       "sudo --preserve-env=DEBIAN_FRONTEND apt-get install --fix-broken --yes --no-install-recommends",
 
       "echo Cleaning up",
-      "rm ./sysbox-ce_*.linux_amd64.deb",
+      "rm ./sysbox-ce_*.linux_${var.architecture}.deb",
     ]
   }
 
@@ -117,59 +117,65 @@ build {
 
 
   ## Uncomment this section to install from a patched CRI-O binary
-  # provisioner "file" {
-  #   source      = "crio"
-  #   destination = "/home/ubuntu/crio"
-  #   max_retries = 3
-  # }
+  provisioner "file" {
+    source      = "crio/${var.architecture}/v${var.k8s_version}/crio-patched"
+    destination = "/home/ubuntu/crio"
+    max_retries = 3
+  }
 
-  # provisioner "shell" {
-  #   inline = [
-  #     "echo >>> Installing prebuilt patched CRI-O",
-  #     "sudo mv crio /usr/bin/crio",
-  #
-  #     "echo Setting permissions",
-  #     "sudo chmod u+x /usr/bin/crio"
-  #   ]
-  # }
-
-  ## Comment this section to install from a patched CRI-O binary
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
-
     inline = [
       "set -o pipefail -o errexit",
 
-      "echo '>>> Sysbox CRI-O patch'",
-      "echo Adding the Go backports repository",
-      "sudo apt-get install --yes --no-install-recommends software-properties-common",
-      "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+      "echo '>>> Installing prebuilt patched CRI-O'",
+      "sudo mv crio /usr/bin/crio",
 
-      "echo Installing Go",
-      "sudo apt-get update",
-      # todo(maximsmol): lock the golang version
-      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
-
-      "echo Cloning the patched CRI-O repository",
-      "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
-
-      "echo Building",
-      "cd cri-o",
-      "make binaries",
-
-      "echo Installing the patched binary",
-      "sudo mv bin/crio /usr/bin/crio",
+      "echo Setting permissions",
       "sudo chmod u+x /usr/bin/crio",
-
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf cri-o",
 
       "echo Restarting CRI-O",
       "sudo systemctl restart crio"
     ]
   }
+
+  ## Comment this section to install from a patched CRI-O binary
+  # provisioner "shell" {
+  #   inline_shebang = "/usr/bin/env bash"
+
+  #   inline = [
+  #     "set -o pipefail -o errexit",
+
+  #     "echo '>>> Sysbox CRI-O patch'",
+  #     "echo Adding the Go backports repository",
+  #     "sudo apt-get install --yes --no-install-recommends software-properties-common",
+  #     "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+
+  #     "echo Installing Go",
+  #     "sudo apt-get update",
+  #     # todo(maximsmol): lock the golang version
+  #     "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
+
+  #     "echo Cloning the patched CRI-O repository",
+  #     "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+
+  #     "echo Building",
+  #     "cd cri-o",
+  #     "make binaries",
+
+  #     "echo Installing the patched binary",
+  #     "sudo mv bin/crio /usr/bin/crio",
+  #     "sudo chmod u+x /usr/bin/crio",
+
+
+  #     "echo Cleaning up",
+  #     "cd ..",
+  #     "rm -rf cri-o",
+
+  #     "echo Restarting CRI-O",
+  #     "sudo systemctl restart crio"
+  #   ]
+  # }
 
   provisioner "file" {
     source      = "bootstrap.sh.patch"
@@ -192,7 +198,7 @@ build {
       "echo '>>> Doing basic CRI-O configuration'",
 
       "echo Installing Dasel",
-      "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 --output /usr/local/bin/dasel",
+      "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_${var.architecture} --output /usr/local/bin/dasel",
       "sudo chmod u+x /usr/local/bin/dasel",
 
       # Disable selinux for now.

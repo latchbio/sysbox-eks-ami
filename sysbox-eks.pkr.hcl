@@ -1,6 +1,6 @@
 source "amazon-ebs" "ubuntu-eks" {
   ami_name        = "${var.img_name}/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
-  ami_description = "Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
+  ami_description = "Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}"
 
   region        = "us-west-2"
   instance_type = "t2.micro"
@@ -10,7 +10,7 @@ source "amazon-ebs" "ubuntu-eks" {
     Linux         = "Ubuntu"
     UbuntuRelease = split("-", var.ubuntu_version)[0]
     UbuntuVersion = split("-", var.ubuntu_version)[1]
-    Arch          = "amd64"
+    Arch          = "${var.architecture}"
     K8sVersion    = var.k8s_version
     SysboxVersion = var.sysbox_version
 
@@ -23,7 +23,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-*"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-${var.architecture}-server-*"
     }
     most_recent = true
     owners      = ["099720109477"]
