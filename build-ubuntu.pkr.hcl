@@ -139,7 +139,8 @@ build {
 
   # equivalent to get_subid_limits() and config_subid_range() functions
   provisioner "shell" {
-    script = "scripts/config_subid_range.sh"
+    script          = "scripts/config_subid_range.sh"
+    execute_command = "chmod +x {{ .Path }}; sudo sh -c '{{ .Vars }} {{ .Path }}'"
   }
 
   ####################

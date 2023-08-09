@@ -124,8 +124,9 @@ function config_subid_range() {
 }
 
 function main() {
-    sudo su -
     get_subid_limits
 	config_subid_range "$subuid_file" "$subid_alloc_min_range" "$subuid_min" "$subuid_max"
 	config_subid_range "$subgid_file" "$subid_alloc_min_range" "$subgid_min" "$subgid_max"
 }
+
+main
