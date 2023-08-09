@@ -30,58 +30,68 @@ build {
   ## Install CRI-O ##
   ###################
 
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
 
-      # https://github.com/cri-o/cri-o/blob/a68a72071e5004be78fe2b1b98cb3bfa0e51b74b/install.md#apt-based-operating-systems
-      "echo '>>> CRI-O'",
-
-      # fixme(maximsmol): take into account ${ubuntu_version}
-      "export OS='xUbuntu_20.04'",
-      "export VERSION='${var.k8s_version}'",
-
-      "echo Adding repositories",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list",
-
-      "echo Adding keys",
-      "mkdir --parents /usr/share/keyrings",
-      "curl --location https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-archive-keyring.gpg",
-      "curl --location https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg",
-
-      "echo Updating apt",
-      "sudo apt-get update",
-
-      "echo Installing CRI-O",
-      "sudo apt-get install --yes --no-install-recommends cri-o cri-o-runc cri-tools",
-
-      "echo Enabling CRI-O at startup",
-      "sudo systemctl enable crio"
-    ]
-  }
-
-  ## Uncomment this section to install from a patched CRI-O binary
-  # part of do_install_crio() function
+  # equivalent to deploy_crio_installer_service() function
   provisioner "file" {
-    source      = "tmp/crio/${var.architecture}/v${var.k8s_version}/crio-patched"
-    destination = "/home/ubuntu/crio"
+    sources     = [
+      "tmp/crio/${var.architecture}/v${var.k8s_version}/crio-patched",
+      "tmp/crio/${var.architecture}/v${var.k8s_version}/cri-o.${var.architecture}.tar.gz",
+      "tmp/crio/scripts/crio-extractor.sh",
+      "tmp/crio/config/etc_cni_net.d_200-loopback.conf",
+      "tmp/crio/config/etc_containers_registries.conf.d_000-shortnames.conf",
+      "tmp/crio/config/etc_containers_storage.conf",
+      "tmp/crio/config/etc_containers_registries.conf",
+      "tmp/crio/config/etc_containers_registries.d_default.yaml",
+      "tmp/crio/config/etc_containers_policy.json",
+      ]
+    destination = "/home/ubuntu/"
     max_retries = 3
   }
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
-      "set -o pipefail -o errexit",
+      "sudo mv cri-o.${var.architecture}.tar.gz /usr/local/bin/cri-o.${var.architecture}.tar.gz",
+      "sudo mv crio-patched /usr/local/bin/crio-patched",
+      "sudo chmod +x crio-extractor.sh && sudo mv crio-extractor.sh /usr/local/bin/crio-extractor.sh",
 
-      "echo '>>> Installing prebuilt patched CRI-O'",
-      "sudo mv crio /usr/bin/crio",
+      "mkdir -p crio/config",
+      "mv etc_cni_net.d_200-loopback.conf crio/config/etc_cni_net.d_200-loopback.conf",
+      "mv etc_containers_registries.conf.d_000-shortnames.conf crio/config/etc_containers_registries.conf.d_000-shortnames.conf",
+      "mv etc_containers_storage.conf crio/config/etc_containers_storage.conf",
+      "mv etc_containers_registries.conf crio/config/etc_containers_registries.conf",
+      "mv etc_containers_registries.d_default.yaml crio/config/etc_containers_registries.d_default.yaml",
+      "mv etc_containers_policy.json crio/config/etc_containers_policy.json",
+    ]
+  }
 
-      "echo Setting permissions",
-      "sudo chmod u+x /usr/bin/crio",
+  # equivalent to config_containers_common() function
+  provisioner "shell" {
+    script          = "scripts/config_containers_common.sh"
+    execute_command = "chmod +x {{ .Path }}; sudo sh -c '{{ .Vars }} {{ .Path }}'"
+  }
 
-      "echo Restarting CRI-O",
-      "sudo systemctl restart crio"
+  # equivalent to install_crio() function
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      # Extract and install the CRI-O (and related dependencies) binaries
+      "pushd '/usr/local/bin'",
+      "sudo tar -xvf 'cri-o.${var.architecture}.tar.gz'",
+      "sudo rm -r 'cri-o.${var.architecture}.tar.gz'",
+	    "pushd cri-o",
+
+      "sudo sh -c  \"/usr/local/bin/crio-extractor.sh install '/usr/local/bin'\"",
+      "sudo rm -r /usr/local/bin/cri-o",
+
+      # Replace the stock CRI-O binary with the one that has the uid mapping patch
+	    # required by Sysbox.
+      "sudo mv /usr/local/bin/crio-patched /usr/local/bin/crio",
+
+      # Remove the CRI-O extractor script since it is no longer needed.
+      "sudo rm /usr/local/bin/crio-extractor.sh",
+
+      "sudo systemctl enable crio",
+	    "echo 'CRI-O installation done.'",
     ]
   }
 
@@ -294,22 +304,11 @@ build {
     ]
   }
 
-  # TODO: this is sus as it isn't done upstream
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      "echo '>>> Removing /etc/cni/net.d'",
-      "sudo rm -r /etc/cni/net.d/",
-    ]
-  }
-
+  # patch the bootstrap.sh to support cri-o and set it as the default
   provisioner "file" {
     source      = "bootstrap.sh.patch"
     destination = "/home/ubuntu/bootstrap.sh.patch"
   }
-
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [

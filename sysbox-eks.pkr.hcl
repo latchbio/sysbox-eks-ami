@@ -2,7 +2,7 @@ source "amazon-ebs" "ubuntu-eks" {
   ami_name        = "${var.img_name}/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
   ami_description = "Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}"
 
-  region        = "us-west-2"
+  region        = "us-east-2"
   instance_type = "t2.micro"
   ami_regions   = var.aws_target_regions
 
