@@ -12,76 +12,20 @@ build {
 #     direction   = "download"
 #   }
 
+  # equivalent to install_package_deps() function
+  # TODO: seems like installing fuse removes fuse3. Which is needed by sysbox? According to arch package docs it hase fuse2 as a dependency.
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "set -o pipefail -o errexit",
 
       "echo Updating apt",
+      "sudo apt-get -y install ca-certificates",
       "sudo apt-get update -y",
+      "sudo apt-get install -y rsync fuse iptables"
     ]
   }
 
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-      "export DEBIAN_FRONTEND=noninteractive",
-
-      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
-      "echo '>>> Sysbox'",
-      "echo Downloading the Sysbox package",
-      "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_${var.architecture}.deb",
-
-      "echo Installing Sysbox package dependencies",
-
-      "sudo apt-get install rsync -y",
-
-      "echo Installing the Sysbox package",
-      "sudo dpkg --install ./sysbox-ce_*.linux_${var.architecture}.deb || true", # will fail due to missing dependencies, fixed in the next step
-
-      "echo 'Fixing the Sysbox package (installing dependencies)'",
-
-      "sudo --preserve-env=DEBIAN_FRONTEND apt-get install --fix-broken --yes --no-install-recommends",
-
-      "echo Cleaning up",
-      "rm ./sysbox-ce_*.linux_${var.architecture}.deb",
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-shiftfs
-      "echo '>>> Shiftfs'",
-
-      "echo Installing dependencies",
-      "sudo apt-get update",
-      "sudo apt-get install --yes --no-install-recommends make dkms git",
-
-      "echo Detecting kernel version to determine the correct branch",
-      "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
-      "echo \"$kernel_version\"",
-      "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
-      "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
-
-      "echo Cloning the repository branch: $branch",
-      "git clone --branch $branch --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
-      "cd shiftfs",
-
-      "echo Running the update script",
-      "./update1",
-
-      "echo Building and installing",
-      "sudo make --file Makefile.dkms",
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf shiftfs"
-    ]
-  }
 
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
@@ -118,7 +62,7 @@ build {
 
   ## Uncomment this section to install from a patched CRI-O binary
   provisioner "file" {
-    source      = "crio/${var.architecture}/v${var.k8s_version}/crio-patched"
+    source      = "tmp/crio/${var.architecture}/v${var.k8s_version}/crio-patched"
     destination = "/home/ubuntu/crio"
     max_retries = 3
   }
@@ -174,6 +118,139 @@ build {
 
   #     "echo Restarting CRI-O",
   #     "sudo systemctl restart crio"
+  #   ]
+  # }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-shiftfs
+      "echo '>>> Shiftfs'",
+
+      "echo Installing dependencies",
+      "sudo apt-get update",
+      "sudo apt-get install --yes --no-install-recommends make dkms git",
+
+      "echo Detecting kernel version to determine the correct branch",
+      "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
+      "echo \"$kernel_version\"",
+      "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
+      "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
+
+      "echo Cloning the repository branch: $branch",
+      "git clone --branch $branch --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
+      "cd shiftfs",
+
+      "echo Running the update script",
+      "./update1",
+
+      "echo Building and installing",
+      "sudo make --file Makefile.dkms",
+
+      "echo Cleaning up",
+      "cd ..",
+      "rm -rf shiftfs",
+      "sudo apt-get remove --yes --purge make dkms git"
+    ]
+  }
+
+  # equivalent to copy_sysbox_to_host() function
+  provisioner "file" {
+    source      = "tmp/sysbox/${var.architecture}/bin"
+    destination = "/home/ubuntu/"
+  }
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Moving Sysbox binaries to /usr/bin'",
+      "sudo mv /home/ubuntu/bin/* /usr/bin/",
+    ]
+  }
+
+  # equivalent to copy_conf_to_host() function
+  provisioner "file" {
+    sources      = ["tmp/sysbox/systemd/99-sysbox-sysctl.conf", "tmp/sysbox/systemd/50-sysbox-mod.conf"]
+    destination = "/home/ubuntu/"
+  }
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Moving Sysbox sysctl configs to /lib/sysctl.d/'",
+      "sudo mv /home/ubuntu/99-sysbox-sysctl.conf /lib/sysctl.d/99-sysbox-sysctl.conf",
+      "sudo mv /home/ubuntu/50-sysbox-mod.conf /lib/sysctl.d/50-sysbox-mod.conf",
+    ]
+  }
+
+  # equivalent to copy_systemd_units_to_host() function
+  provisioner "file" {
+    sources      = ["tmp/sysbox/systemd/sysbox.service", "tmp/sysbox/systemd/sysbox-mgr.service", "tmp/sysbox/systemd/sysbox-fs.service"]
+    destination = "/home/ubuntu/"
+  }
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Moving Sysbox systemd units to /lib/systemd/system/'",
+      "sudo mv /home/ubuntu/sysbox.service /lib/systemd/system/sysbox.service",
+      "sudo mv /home/ubuntu/sysbox-mgr.service /lib/systemd/system/sysbox-mgr.service",
+      "sudo mv /home/ubuntu/sysbox-fs.service /lib/systemd/system/sysbox-fs.service",
+
+      "echo '>>> Enabling Sysbox systemd units'",
+      "sudo systemctl daemon-reload",
+      "sudo systemctl enable sysbox.service",
+      "sudo systemctl enable sysbox-mgr.service",
+      "sudo systemctl enable sysbox-fs.service",
+    ]
+  }
+
+  # equivalent to apply_conf()
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "sudo echo 'Configuring host sysctls ...'",
+	    "sudo sysctl -p '/lib/sysctl.d/99-sysbox-sysctl.conf'",
+    ]
+  }
+
+  # equivalent to start_sysbox()
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "sudo echo 'Starting CE ...'",
+	    "sudo systemctl restart sysbox",
+	    "sudo systemctl is-active --quiet sysbox",
+    ]
+  }
+
+
+
+  # provisioner "shell" {
+  #   inline_shebang = "/usr/bin/env bash"
+  #   inline = [
+  #     "set -o pipefail -o errexit",
+  #     "export DEBIAN_FRONTEND=noninteractive",
+
+  #     # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
+  #     "echo '>>> Sysbox'",
+  #     "echo Downloading the Sysbox package",
+  #     "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_${var.architecture}.deb",
+
+  #     "echo Installing the Sysbox package",
+  #     "sudo dpkg --install ./sysbox-ce_*.linux_${var.architecture}.deb || true", # will fail due to missing dependencies, fixed in the next step
+
+  #     "echo 'Fixing the Sysbox package (installing dependencies)'",
+
+  #     "sudo --preserve-env=DEBIAN_FRONTEND apt-get install --fix-broken --yes --no-install-recommends",
+
+  #     "echo Cleaning up",
+  #     "rm ./sysbox-ce_*.linux_${var.architecture}.deb",
   #   ]
   # }
 

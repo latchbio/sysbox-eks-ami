@@ -5,7 +5,7 @@ variable "aws_target_regions" {
 
 variable "img_name" {
   type    = string
-  default = "pluraldev-04-prebuilt-crio"
+  default = "pluraldev-05-cleanup-part1"
 }
 
 variable "architecture" {
