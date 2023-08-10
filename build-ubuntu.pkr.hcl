@@ -80,7 +80,7 @@ build {
       "sudo rm -r 'cri-o.${var.architecture}.tar.gz'",
 	    "pushd cri-o",
 
-      "sudo sh -c  \"/usr/local/bin/crio-extractor.sh install '/usr/local/bin'\"",
+      "sudo sh -c  \"/usr/local/bin/crio-extractor.sh install '/usr/local'\"",
       "sudo rm -r /usr/local/bin/cri-o",
 
       # Replace the stock CRI-O binary with the one that has the uid mapping patch
@@ -91,6 +91,8 @@ build {
       "sudo rm /usr/local/bin/crio-extractor.sh",
 
       "sudo systemctl enable crio",
+      "sudo systemctl restart crio",
+	    "sudo systemctl is-active --quiet crio",
 	    "echo 'CRI-O installation done.'",
     ]
   }
