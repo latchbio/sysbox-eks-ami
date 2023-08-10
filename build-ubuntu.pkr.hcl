@@ -13,7 +13,6 @@ build {
   # }
 
   # equivalent to install_package_deps() function
-  # TODO: seems like installing fuse removes fuse3. Which is needed by sysbox? According to arch package docs it hase fuse2 as a dependency.
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
