@@ -1,9 +1,9 @@
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "${var.img_name}/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
-  ami_description = "Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}"
+  ami_name        = "${var.img_name}/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-${var.architecture}-server/${var.img_version}"
+  ami_description = "Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version} (${var.architecture}) Maintained by Plural."
 
-  region        = "us-west-2"
-  instance_type = "t2.micro"
+  region        = "us-east-2"
+  instance_type = local.instance_type
   ami_regions   = var.aws_target_regions
 
   tags = {
@@ -30,7 +30,11 @@ source "amazon-ebs" "ubuntu-eks" {
   }
 
   ssh_username          = "ubuntu"
-  # ami_groups            = ["all"] # TODO: uncomment when ready to make public
+  ami_groups            = ["all"]
   force_deregister      = true
   force_delete_snapshot = true
+}
+
+locals {
+  instance_type = var.architecture == "amd64" ? "t3.micro" : "t4g.micro"
 }
