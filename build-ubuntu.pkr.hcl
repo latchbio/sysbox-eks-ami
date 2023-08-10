@@ -222,7 +222,7 @@ build {
 
       "echo '>>> Moving Sysbox sysctl configs to /lib/sysctl.d/'",
       "sudo mv /home/ubuntu/99-sysbox-sysctl.conf /lib/sysctl.d/99-sysbox-sysctl.conf",
-      "sudo mv /home/ubuntu/50-sysbox-mod.conf /lib/sysctl.d/50-sysbox-mod.conf",
+      "sudo mv /home/ubuntu/50-sysbox-mod.conf /usr/lib/modules-load.d/50-sysbox-mod.conf",
     ]
   }
 
