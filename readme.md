@@ -1,3 +1,16 @@
+# [Consider Plural's fork](https://github.com/pluralsh/sysbox-eks-ami)
+
+Improvements:
+- [Working KinD (#7)](https://github.com/latchbio/sysbox-eks-ami/issues/7)
+- Reportedly more closely matches the official installation method
+- Automatic builds for multiple K8s versions and system architectures
+- Automatically builds with new SysBox versions
+- Pre-built public AMIs for testing (make sure you understand the security implications!)
+
+The usual liability and warranty waivers apply. This banner is based on assumption of good faith and should not be seen as an endorsement of any kind.
+
+---
+
 # Sysbox EKS AMI
 
 Packer script for building an AMI with pre-installed Sysbox based on an Ubuntu EKS AMI.
