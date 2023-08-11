@@ -18,6 +18,15 @@
       "enabled": true
     }
   ],
+  "regexManagers": [
+    {
+      "fileMatch": ["^.github/workflows/build.yaml$"],
+      "matchStrings": [
+        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s .*?_VERSION: (?<currentValue>.*)"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+    }
+  ],
   "labels": [
     "dependencies"
   ],

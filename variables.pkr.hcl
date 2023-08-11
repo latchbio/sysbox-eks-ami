@@ -48,10 +48,10 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.6.2"
+  default = "v0.6.2"
 
   validation {
-    condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
+    condition     = can(regex("^v?\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
     error_message = "Invalid Sysbox version: expected '{major}.{minor}.{patch}'."
   }
 }
