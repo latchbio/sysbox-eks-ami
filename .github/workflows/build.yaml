@@ -68,7 +68,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         if: github.event_name != 'pull_request'
         with:
           aws-region: us-east-2
@@ -92,6 +92,7 @@ jobs:
         run: "packer validate ."
       - name: Run `packer build`
         id: build
+        # always is used here to ensure the builds can't get cancelled and leave dangling resources
         if: always() && (github.event_name != 'pull_request' && needs.prepare.outputs.new_release_published == 'true')
         env:
           PKR_VAR_k8s_version: ${{ matrix.k8s_version }}
