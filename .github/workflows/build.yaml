@@ -46,7 +46,7 @@ jobs:
           path: tmp
           key: ${{ runner.os }}-build-${{ env.SYSBOX_VERSION }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
         if: steps.sysbox_cache.outputs.cache-hit != 'true'
       - name: Get sysbox and cri-o files
         if: steps.sysbox_cache.outputs.cache-hit != 'true'
