@@ -1,0 +1,153 @@
+name: Packer Build
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  prepare:
+    name: Build EKS AMI
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    env:
+      # renovate: datasource=github-tags depName=nestybox/sysbox
+      SYSBOX_VERSION: v0.6.2
+    outputs:
+      new_release_version: ${{ steps.semantic_release.outputs.new_release_version }}
+      new_release_published: ${{ steps.semantic_release.outputs.new_release_published }}
+      sysbox_version: ${{ env.SYSBOX_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PLURAL_BOT_PAT }}
+      - name: 'Setup Node'
+        uses: actions/setup-node@v3
+        if: github.event_name != 'pull_request'
+        with:
+          node-version: 18.12.1
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v3
+        id: semantic_release
+        with:
+          dry_run: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.PLURAL_BOT_PAT }}
+          NODE_AUTH_TOKEN: ${{ secrets.PLURAL_BOT_NPM_TOKEN }}
+      - name: Cache sysbox and cri-o files
+        id: sysbox_cache
+        uses: actions/cache@v3
+        with:
+          path: tmp
+          key: ${{ runner.os }}-build-${{ env.SYSBOX_VERSION }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        if: steps.sysbox_cache.outputs.cache-hit != 'true'
+      - name: Get sysbox and cri-o files
+        if: steps.sysbox_cache.outputs.cache-hit != 'true'
+        run: make get-files
+  packer_build_eks:
+    name: Build EKS AMI
+    runs-on: ubuntu-latest
+    needs: prepare
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    strategy:
+      fail-fast: false
+      matrix:
+        k8s_version: ["1.23", "1.24", "1.25", "1.26"]
+        ubuntu_version: ["focal-20.04"]
+        architecture: ["amd64", "arm64"]
+        sysbox_version: ["${{ needs.prepare.outputs.sysbox_version }}"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        if: github.event_name != 'pull_request'
+        with:
+          aws-region: us-east-2
+          role-to-assume: arn:aws:iam::654897662046:role/github-actions/plural-sysbox-amis-packer
+          role-session-name: SysboxAmisPacker
+      - name: Setup `packer`
+        uses: hashicorp/setup-packer@main
+        id: setup
+        with:
+          version: 1.9.2
+      - name: Restore downloaded files
+        uses: actions/cache/restore@v3
+        with:
+          path: tmp
+          key: ${{ runner.os }}-build-${{ matrix.sysbox_version }}
+      - name: Run `packer init`
+        id: init
+        run: "packer init ."
+      - name: Run `packer validate`
+        id: validate
+        run: "packer validate ."
+      - name: Run `packer build`
+        id: build
+        # always is used here to ensure the builds can't get cancelled and leave dangling resources
+        if: always() && (github.event_name != 'pull_request' && needs.prepare.outputs.new_release_published == 'true')
+        env:
+          PKR_VAR_k8s_version: ${{ matrix.k8s_version }}
+          PKR_VAR_ubuntu_version: ${{ matrix.ubuntu_version }}
+          PKR_VAR_architecture: ${{ matrix.architecture }}
+          PKR_VAR_sysbox_version: ${{ matrix.sysbox_version }}
+          PKR_VAR_img_version: ${{ needs.prepare.outputs.new_release_version }}
+        run: "packer build ."
+  release:
+    runs-on: ubuntu-latest
+    needs: packer_build_eks
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    if: github.event_name != 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PLURAL_BOT_PAT }}
+      - name: 'Setup Node'
+        uses: actions/setup-node@v3
+        if: github.event_name != 'pull_request'
+        with:
+          node-version: 18.12.1
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v3
+        id: semantic_release
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.PLURAL_BOT_PAT }}
+          NODE_AUTH_TOKEN: ${{ secrets.PLURAL_BOT_NPM_TOKEN }}
+  # trivy-scan:
+  #   name: Trivy fs scan
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read # for actions/checkout to fetch code
+  #     security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+  #     actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+  #     - name: Run Trivy vulnerability scanner in fs mode
+  #       uses: aquasecurity/trivy-action@master
+  #       with:
+  #         scan-type: 'fs'
+  #         hide-progress: false
+  #         format: 'sarif'
+  #         output: 'trivy-results.sarif'
+  #         scanners: 'vuln,secret'
+  #         ignore-unfixed: true
+  #         #severity: 'CRITICAL,HIGH'
+  #     - name: Upload Trivy scan results to GitHub Security tab
+  #       uses: github/codeql-action/upload-sarif@v2
+  #       with:
+  #         sarif_file: 'trivy-results.sarif'
