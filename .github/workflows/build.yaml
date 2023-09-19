@@ -22,7 +22,7 @@ jobs:
       sysbox_version: ${{ env.SYSBOX_VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.PLURAL_BOT_PAT }}
@@ -67,7 +67,7 @@ jobs:
         sysbox_version: ["${{ needs.prepare.outputs.sysbox_version }}"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         if: github.event_name != 'pull_request'
@@ -111,7 +111,7 @@ jobs:
     if: github.event_name != 'pull_request'
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.PLURAL_BOT_PAT }}
