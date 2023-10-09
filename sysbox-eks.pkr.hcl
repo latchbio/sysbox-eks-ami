@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.23"
+  default = "1.24"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
