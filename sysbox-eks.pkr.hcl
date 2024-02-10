@@ -38,7 +38,7 @@ packer {
 }
 
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server"
+  ami_name        = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server/v2"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image"
 
   tags = {
@@ -187,11 +187,12 @@ build {
   # }
 
   # provisioner "shell" {
+  #   inline_shebang = "/usr/bin/env bash"
   #   inline = [
-  #     "echo >>> Installing prebuilt patched CRI-O",
+  #     "echo '>>> Installing prebuilt patched CRI-O'",
   #     "sudo mv crio /usr/bin/crio",
-  #
-  #     "echo Setting permissions",
+
+  #     "echo 'Setting permissions'",
   #     "sudo chmod u+x /usr/bin/crio"
   #   ]
   # }
@@ -279,6 +280,23 @@ build {
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
       # /usr/local/share/eks/bootstrap.sh is symlinked to /etc/eks/boostrap.sh
       "sudo patch --backup /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring CRI-O for StarGZ'",
+
+      "sudo dasel put string --parser toml --file /etc/containers/storage.conf --selector 'storage.options.additionallayerstores.[]' --multiple /var/lib/stargz-store/store:ref",
+
+      "sudo curl --location https://github.com/containerd/stargz-snapshotter/releases/download/v0.15.1/stargz-snapshotter-v0.15.1-linux-amd64.tar.gz --output stargz-snapshotter-v0.15.1-linux-amd64.tar.gz",
+      "sudo tar -C /usr/local/bin -xvf stargz-snapshotter-v0.15.1-linux-amd64.tar.gz stargz-store",
+
+      "sudo wget -O /etc/systemd/system/stargz-store.service https://raw.githubusercontent.com/containerd/stargz-snapshotter/main/script/config-cri-o/etc/systemd/system/stargz-store.service",
+      "sudo systemctl enable stargz-store",
     ]
   }
 
