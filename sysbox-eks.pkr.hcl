@@ -288,6 +288,14 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
+      "echo '>>> Configuring ECR Credentials for StarGZ'",
+
+      "sudo apt-get install amazon-ecr-credential-helper -y",
+
+      "sudo mkdir /root/.docker",
+      "sudo touch /root/.docker/config.json",
+      "sudo dasel put string --parser json --file /root/.docker/config.json --selector 'credsStore' -v 'ecr-login'",
+
       "echo '>>> Configuring CRI-O for StarGZ'",
 
       "sudo dasel put string --parser toml --file /etc/containers/storage.conf --selector 'storage.options.additionallayerstores.[]' --multiple /var/lib/stargz-store/store:ref",
