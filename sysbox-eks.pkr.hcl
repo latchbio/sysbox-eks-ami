@@ -45,7 +45,7 @@ packer {
 data "git-commit" "current" {}
 
 local "git_branch" {
-  expression = "${substr(data.git-commit.current.hash, 0, 8)}-${replace(element(data.git-commit.current.branches,0), "/", "-")}"
+  expression = "${substr(data.git-commit.current.hash, 0, 8)}-${replace(element(data.git-commit.current.branches, 0), "/", "-")}"
 }
 
 local "timestamp" {
@@ -53,7 +53,7 @@ local "timestamp" {
 }
 
 local "ami_name" {
-  expression     = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
+  expression = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
