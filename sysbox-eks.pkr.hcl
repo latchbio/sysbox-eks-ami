@@ -52,44 +52,12 @@ local "timestamp" {
   expression = regex_replace(timestamp(), "[- TZ:]", "")
 }
 
-locals {
-  ami_name     = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
-  gpu_ami_name = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
+local "ami_name" {
+  expression     = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
   ami_name        = "${local.ami_name}"
-  ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image."
-
-  tags = {
-    Linux         = "Ubuntu"
-    UbuntuRelease = split("-", var.ubuntu_version)[0]
-    UbuntuVersion = split("-", var.ubuntu_version)[1]
-    Arch          = "amd64"
-    K8sVersion    = var.k8s_version
-    SysboxVersion = var.sysbox_version
-
-    BaseImageID      = "{{ .SourceAMI }}"
-    BaseImageOwnerID = "{{ .SourceAMIOwner }}"
-
-    BaseImageOwnerName = "{{ .SourceAMIOwnerName }}"
-    BaseImageName      = "{{ .SourceAMIName }}"
-  }
-
-  source_ami_filter {
-    filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20230616"
-    }
-    owners = ["099720109477"]
-  }
-
-  region        = "us-west-2"
-  instance_type = "t2.micro"
-  ssh_username  = "ubuntu"
-}
-
-source "amazon-ebs" "ubuntu-gpu-eks" {
-  ami_name        = "${local.gpu_ami_name}"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}) with NVIDIA GPU support, on Ubuntu ${var.ubuntu_version}, amd64 image."
 
   tags = {
@@ -123,7 +91,6 @@ build {
   name = "sysbox-eks"
   sources = [
     "source.amazon-ebs.ubuntu-eks",
-    "source.amazon-ebs.ubuntu-gpu-eks"
   ]
 
   provisioner "shell" {
@@ -316,9 +283,6 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.conmon_cgroup' 'pod'",
 
-      # enable mounting FUSE device inside of containers
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
-
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple SETFCAP",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple AUDIT_WRITE",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple NET_RAW",
@@ -365,7 +329,6 @@ build {
 
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
-    only           = ["source.amazon-ebs.ubuntu-gpu-eks"]
     inline = [
       "set -o pipefail -o errexit",
       "export DEBIAN_FRONTEND=noninteractive",
@@ -377,6 +340,10 @@ build {
       "sudo apt-get update",
       "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install nvidia-driver-530 nvidia-container-toolkit",
 
+      # enable mounting FUSE device inside of containers
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
+
+      # enable mounting NVIDIA devices inside of containers
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card0",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card1",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card2",
