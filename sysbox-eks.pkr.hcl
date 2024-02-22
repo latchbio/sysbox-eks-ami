@@ -28,23 +28,37 @@ variable "k8s_version" {
   }
 }
 
-locals {
-  timestamp      = regex_replace(timestamp(), "[- TZ:]", "")
-  ami_prefix     = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve"
-  gpu_ami_prefix = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve"
-}
-
 packer {
   required_plugins {
     amazon = {
       version = "= 1.0.9"
       source  = "github.com/hashicorp/amazon"
     }
+    git = {
+      version = ">= 0.5.0"
+      source  = "github.com/ethanmdavidson/git"
+    }
+
   }
 }
 
+data "git-commit" "current" {}
+
+local "git_branch" {
+  expression = "${substr(data.git-commit.current.hash, 0, 8)}-${replace(element(data.git-commit.current.branches,0), "/", "-")}"
+}
+
+local "timestamp" {
+  expression = regex_replace(timestamp(), "[- TZ:]", "")
+}
+
+locals {
+  ami_name     = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
+  gpu_ami_name = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
+}
+
 source "amazon-ebs" "ubuntu-eks" {
-  ami_name        = "${local.ami_prefix}-${local.timestamp}"
+  ami_name        = "${local.ami_name}"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}), on Ubuntu ${var.ubuntu_version}, amd64 image."
 
   tags = {
@@ -75,7 +89,7 @@ source "amazon-ebs" "ubuntu-eks" {
 }
 
 source "amazon-ebs" "ubuntu-gpu-eks" {
-  ami_name        = "${local.gpu_ami_prefix}-${local.timestamp}"
+  ami_name        = "${local.gpu_ami_name}"
   ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}) with NVIDIA GPU support, on Ubuntu ${var.ubuntu_version}, amd64 image."
 
   tags = {
