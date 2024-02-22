@@ -53,7 +53,7 @@ local "timestamp" {
 }
 
 local "ami_name" {
-  expression     = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
+  expression     = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
