@@ -28,16 +28,6 @@ variable "k8s_version" {
   }
 }
 
-variable "nvidia_driver_version" {
-  type    = string
-  default = "550.54.14-0ubuntu1"
-
-  validation {
-    condition     = can(regex("^\\d+\\.\\d+\\.\\d+-.*$", var.nvidia_driver_version))
-    error_message = "Invalid NVIDIA driver version: expected '{major}.{minor}.{patch}-{build}'."
-  }
-}
-
 packer {
   required_plugins {
     amazon = {
@@ -55,11 +45,15 @@ packer {
 data "git-commit" "current" {}
 
 local "git_branch" {
-  expression = "${substr(data.git-commit.current.hash, 0, 4)}-${replace(element(data.git-commit.current.branches, 0), "/", "-")}"
+  expression = "${substr(data.git-commit.current.hash, 0, 8)}-${replace(element(data.git-commit.current.branches, 0), "/", "-")}"
+}
+
+local "timestamp" {
+  expression = regex_replace(timestamp(), "[- TZ:]", "")
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.nvidia_driver_version}/latch-${local.git_branch}"
+  expression = "latch-bio/sysbox-eks_${var.sysbox_version}-gpu/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-serve-${local.timestamp}-${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -344,7 +338,7 @@ build {
       "rm cuda-keyring_1.0-1_all.deb",
 
       "sudo apt-get update",
-      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install nvidia-driver-550=${var.nvidia_driver_version} nvidia-container-toolkit",
+      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install nvidia-driver-530 nvidia-container-toolkit",
 
       # enable mounting FUSE device inside of containers
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
