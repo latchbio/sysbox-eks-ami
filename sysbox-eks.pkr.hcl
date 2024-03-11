@@ -30,7 +30,7 @@ variable "k8s_version" {
 
 variable "nvidia_driver_version" {
   type    = string
-  default = "550.54.14-0ubuntu1"
+  default = "530.30.02-0ubuntu1"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+-.*$", var.nvidia_driver_version))
@@ -344,7 +344,8 @@ build {
       "rm cuda-keyring_1.0-1_all.deb",
 
       "sudo apt-get update",
-      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install nvidia-driver-550=${var.nvidia_driver_version} nvidia-container-toolkit",
+      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install libnvidia-common-530=${var.nvidia_driver_version} libnvidia-gl-530=${var.nvidia_driver_version} nvidia-kernel-common-530=${var.nvidia_driver_version} nvidia-dkms-530=${var.nvidia_driver_version} nvidia-kernel-source-530=${var.nvidia_driver_version} libnvidia-compute-530=${var.nvidia_driver_version} libnvidia-extra-530=${var.nvidia_driver_version} nvidia-compute-utils-530=${var.nvidia_driver_version} libnvidia-decode-530=${var.nvidia_driver_version} libnvidia-encode-530=${var.nvidia_driver_version} nvidia-utils-530=${var.nvidia_driver_version} xserver-xorg-video-nvidia-530=${var.nvidia_driver_version} libnvidia-cfg1-530=${var.nvidia_driver_version} libnvidia-fbc1-530=${var.nvidia_driver_version} nvidia-driver-530=${var.nvidia_driver_version} nvidia-container-toolkit",
+      "sudo apt-mark hold libnvidia-common-530 libnvidia-gl-530 nvidia-kernel-common-530 nvidia-dkms-530 nvidia-kernel-source-530 libnvidia-compute-530 libnvidia-extra-530 nvidia-compute-utils-530 libnvidia-decode-530 libnvidia-encode-530 nvidia-utils-530 xserver-xorg-video-nvidia-530 libnvidia-cfg1-530 libnvidia-fbc1-530 nvidia-driver-530",
 
       # enable mounting FUSE device inside of containers
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
