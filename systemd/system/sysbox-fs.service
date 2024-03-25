@@ -7,6 +7,7 @@ After=sysbox-mgr.service
 Type=simple
 Type=notify
 ExecStart=/usr/bin/sysbox-fs
+Restart=always
 TimeoutStartSec=10
 TimeoutStopSec=10
 StartLimitInterval=0

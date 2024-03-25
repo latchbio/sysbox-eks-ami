@@ -14,6 +14,7 @@ Before=docker.service containerd.service
 [Service]
 Type=exec
 ExecStart=/bin/sh -c "/usr/bin/sysbox-runc --version && /usr/bin/sysbox-mgr --version && /usr/bin/sysbox-fs --version && /bin/sleep infinity"
+Restart=always
 
 [Install]
 # Components of this application should be started at boot time

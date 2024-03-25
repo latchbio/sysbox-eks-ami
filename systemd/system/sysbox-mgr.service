@@ -6,6 +6,7 @@ PartOf=sysbox.service
 Type=simple
 Type=notify
 ExecStart=/usr/bin/sysbox-mgr
+Restart=always
 TimeoutStartSec=45
 TimeoutStopSec=90
 StartLimitInterval=0
