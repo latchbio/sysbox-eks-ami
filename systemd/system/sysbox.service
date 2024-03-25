@@ -4,7 +4,12 @@
 [Unit]
 Description=Sysbox container runtime
 Documentation=https://github.com/nestybox/sysbox
-BindsTo=sysbox-mgr.service sysbox-fs.service
+# rahul: using BindsTo + PartOf prevents the services that are bound
+# from restarting on failure. For example, if sysbox-mgr.service is
+# killed, sysbox.service will stop because of the 'BindsTo' constraint.
+# However, because sysbox-mgr.service is 'PartOf' sysbox.service,
+# sysbox-mgr.service will not restart until sysbox.service has started
+# BindsTo=sysbox-mgr.service sysbox-fs.service
 After=sysbox-mgr.service sysbox-fs.service
 
 # Must start before Docker/containerd to ensure "docker --restart" works
