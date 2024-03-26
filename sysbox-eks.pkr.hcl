@@ -137,7 +137,7 @@ build {
   }
 
   provisioner "file" {
-    source      = "systemd/system"
+    source      = "systemd"
     destination = "/home/ubuntu"
   }
 
