@@ -136,6 +136,21 @@ build {
     ]
   }
 
+  provisioner "file" {
+    source      = "systemd"
+    destination = "/home/ubuntu"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Configuring Systemd for Sysbox'",
+      "sudo mv /home/ubuntu/systemd/system/sysbox-mgr.service /lib/systemd/system/sysbox-mgr.service",
+      "sudo mv /home/ubuntu/systemd/system/sysbox-fs.service /lib/systemd/system/sysbox-fs.service",
+      "sudo mv /home/ubuntu/systemd/system/sysbox.service /lib/systemd/system/sysbox.service",
+    ]
+  }
+
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
