@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.25"
+  default = "1.26"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -253,7 +253,7 @@ build {
       "echo Installing Go",
       "sudo apt-get update",
       # todo(maximsmol): lock the golang version
-      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev",
+      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
 
       "echo Cloning the patched CRI-O repository",
       "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
