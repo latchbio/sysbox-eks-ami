@@ -10,7 +10,7 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.6.2"
+  default = "0.6.4"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.24"
+  default = "1.25"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
