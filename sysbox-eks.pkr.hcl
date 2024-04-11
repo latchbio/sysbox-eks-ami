@@ -210,7 +210,12 @@ build {
       "sudo apt-get update",
 
       "echo Installing CRI-O",
-      "sudo apt-get install --yes --no-install-recommends cri-o cri-o-runc cri-tools",
+      "sudo apt-get install --yes --no-install-recommends cri-o cri-o-runc",
+
+      "export CRICTL_VERSION='v${var.k8s_version}.0'",
+      "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
+      "sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin",
+      "rm --force crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
 
       "echo Enabling CRI-O at startup",
       "sudo systemctl enable crio"
