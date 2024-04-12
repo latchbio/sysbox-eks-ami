@@ -83,7 +83,8 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240410"
+      # later versions than 2024-01-25 have kernel version > 6.2 which are not yet supported by shiftfs (should update when available, last checked 2024-04-12)
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240125"
     }
     owners = ["099720109477"]
   }
@@ -91,6 +92,8 @@ source "amazon-ebs" "ubuntu-eks" {
   region        = "us-west-2"
   instance_type = "t2.micro"
   ssh_username  = "ubuntu"
+  temporary_key_pair_type = "ed25519"
+  ssh_handshake_attempts = 100
 }
 
 build {
@@ -166,7 +169,7 @@ build {
       "echo Detecting kernel version to determine the correct branch",
       "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
       "echo \"$kernel_version\"",
-      "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
+      "declare -A kernel_to_branch=( [6.2]=k6.1 [6.1]=k6.1 [5.19]=k5.18 [5.18]=k5.18 [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
       "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
 
       "echo Cloning the repository branch: $branch",
@@ -194,23 +197,23 @@ build {
       "echo '>>> CRI-O'",
 
       # fixme(maximsmol): take into account ${ubuntu_version}
-      "export OS='xUbuntu_22.04'",
-      "export VERSION='${var.k8s_version}'",
+      "export PROJECT_PATH='prerelease:/main'",
+      "export VERSION='v${var.k8s_version}'",
 
-      "echo Adding repositories",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list",
+      "echo Adding keys and repositories",
+      "mkdir --parents /etc/apt/keyrings",
 
-      "echo Adding keys",
-      "mkdir --parents /usr/share/keyrings",
-      "curl --location https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-archive-keyring.gpg",
-      "curl --location https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg",
+      "curl -fsSL https://pkgs.k8s.io/core:/stable:/$VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
+      "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$VERSION/deb/ /\" | sudo tee /etc/apt/sources.list.d/kubernetes.list",
+
+      "curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg",
+      "echo \"deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/ /\" | sudo tee /etc/apt/sources.list.d/cri-o.list",
 
       "echo Updating apt",
       "sudo apt-get update",
 
       "echo Installing CRI-O",
-      "sudo apt-get install --yes --no-install-recommends cri-o cri-o-runc",
+      "sudo apt-get install --yes --no-install-recommends cri-o",
 
       "export CRICTL_VERSION='v${var.k8s_version}.0'",
       "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
@@ -304,6 +307,8 @@ build {
       "echo Installing Dasel",
       "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 --output /usr/local/bin/dasel",
       "sudo chmod u+x /usr/local/bin/dasel",
+
+      "sudo touch /etc/crio/crio.conf",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
