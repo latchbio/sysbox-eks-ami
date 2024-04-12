@@ -1,6 +1,6 @@
 variable "ubuntu_version" {
   type    = string
-  default = "focal-20.04"
+  default = "jammy-22.04"
 
   validation {
     condition     = can(regex("^\\w+-\\d+\\.\\d+$", var.ubuntu_version))
@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.28"
+  default = "1.29"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -83,7 +83,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240411"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240410"
     }
     owners = ["099720109477"]
   }
@@ -194,7 +194,7 @@ build {
       "echo '>>> CRI-O'",
 
       # fixme(maximsmol): take into account ${ubuntu_version}
-      "export OS='xUbuntu_20.04'",
+      "export OS='xUbuntu_22.04'",
       "export VERSION='${var.k8s_version}'",
 
       "echo Adding repositories",
