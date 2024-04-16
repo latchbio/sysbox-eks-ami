@@ -410,16 +410,4 @@ build {
       "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'"
     ]
   }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-      "echo '>>> Configuring IPTables'",
-      "sudo update-alternatives --set iptables /usr/sbin/iptables-nft",
-      "sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-nft",
-      "sudo update-alternatives --set arptables /usr/sbin/arptables-nft",
-      "sudo update-alternatives --set ebtables /usr/sbin/ebtables-nft"
-    ]
-  }
 }
