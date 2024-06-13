@@ -1,5 +1,5 @@
 variable "ubuntu_version" {
-  type    = string
+
   default = "focal-20.04"
 
   validation {
@@ -148,6 +148,7 @@ build {
       "sudo mv /home/ubuntu/systemd/system/sysbox-mgr.service /lib/systemd/system/sysbox-mgr.service",
       "sudo mv /home/ubuntu/systemd/system/sysbox-fs.service /lib/systemd/system/sysbox-fs.service",
       "sudo mv /home/ubuntu/systemd/system/sysbox.service /lib/systemd/system/sysbox.service",
+      "sudo mkdir /var/log/sysbox"
     ]
   }
 
