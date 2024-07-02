@@ -241,62 +241,62 @@ build {
 
 
   ## Uncomment this section to install from a patched CRI-O binary
-  # provisioner "file" {
-  #   source      = "crio"
-  #   destination = "/home/ubuntu/crio"
-  #   max_retries = 3
-  # }
+  provisioner "file" {
+    source      = "crio"
+    destination = "/home/ubuntu/crio"
+    max_retries = 3
+  }
 
-  # provisioner "shell" {
-  #   inline = [
-  #     "echo '>>> Installing prebuilt patched CRI-O'",
-  #     "sudo mv crio /usr/bin/crio",
-
-  #     "echo Setting permissions",
-  #     "sudo chmod u+x /usr/bin/crio"
-
-  #     # "echo Restarting CRI-O",
-  #     # "sudo systemctl restart crio"
-  #   ]
-  # }
-
-  ## Comment this section to install from a patched CRI-O binary
   provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-
     inline = [
-      "set -o pipefail -o errexit",
+      "echo '>>> Installing prebuilt patched CRI-O'",
+      "sudo mv crio /usr/bin/crio",
 
-      "echo '>>> Sysbox CRI-O patch'",
-      "echo Adding the Go backports repository",
-      "sudo apt-get install --yes --no-install-recommends software-properties-common",
-      "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+      "echo Setting permissions",
+      "sudo chmod u+x /usr/bin/crio"
 
-      "echo Installing Go",
-      "sudo apt-get update",
-      # todo(maximsmol): lock the golang version
-      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
-
-      "echo Cloning the patched CRI-O repository",
-      "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
-
-      "echo Building",
-      "cd cri-o",
-      "make binaries",
-
-      "echo Installing the patched binary",
-      "sudo mv bin/crio /usr/bin/crio",
-      "sudo chmod u+x /usr/bin/crio",
-
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf cri-o",
-
-      "echo Restarting CRI-O",
-      "sudo systemctl restart crio"
+      # "echo Restarting CRI-O",
+      # "sudo systemctl restart crio"
     ]
   }
+
+  ## Comment this section to install from a patched CRI-O binary
+  # provisioner "shell" {
+  #   inline_shebang = "/usr/bin/env bash"
+
+  #   inline = [
+  #     "set -o pipefail -o errexit",
+
+  #     "echo '>>> Sysbox CRI-O patch'",
+  #     "echo Adding the Go backports repository",
+  #     "sudo apt-get install --yes --no-install-recommends software-properties-common",
+  #     "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+
+  #     "echo Installing Go",
+  #     "sudo apt-get update",
+  #     # todo(maximsmol): lock the golang version
+  #     "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
+
+  #     "echo Cloning the patched CRI-O repository",
+  #     "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+
+  #     "echo Building",
+  #     "cd cri-o",
+  #     "make binaries",
+
+  #     "echo Installing the patched binary",
+  #     "sudo mv bin/crio /usr/bin/crio",
+  #     "sudo chmod u+x /usr/bin/crio",
+
+
+  #     "echo Cleaning up",
+  #     "cd ..",
+  #     "rm -rf cri-o",
+
+  #     "echo Restarting CRI-O",
+  #     "sudo systemctl restart crio"
+  #   ]
+  # }
 
   provisioner "file" {
     source      = "bootstrap.sh.patch"
