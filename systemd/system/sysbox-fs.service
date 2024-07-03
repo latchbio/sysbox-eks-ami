@@ -6,12 +6,12 @@ After=sysbox-mgr.service
 [Service]
 Type=simple
 Type=notify
-ExecStart=/bin/sh -c "/usr/bin/sysbox-fs --log /var/log/sysbox/sysbox-fs.txt"
+ExecStart=/usr/bin/sysbox-fs --log /var/log/sysbox/sysbox-fs.txt
 Restart=always
 TimeoutStartSec=10
 TimeoutStopSec=10
 StartLimitInterval=0
-NotifyAccess=all
+NotifyAccess=main
 OOMScoreAdjust=-500
 
 # The number of files opened by sysbox-fs is a function of the number of
