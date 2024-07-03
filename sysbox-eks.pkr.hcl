@@ -120,7 +120,7 @@ build {
       "sudo bash Mambaforge-Linux-x86_64.sh -b -p /opt/mamba -u",
       "rm Mambaforge-Linux-x86_64.sh",
 
-      "sudo /opt/mamba/bin/mamba create -y -p /opt/latch-env python=3.11",
+      "sudo /opt/mamba/bin/mamba create --copy -y -p /opt/latch-env python=3.11",
       "sudo /opt/latch-env/bin/pip install latch==2.47.7"
     ]
   }
@@ -261,42 +261,42 @@ build {
   }
 
   ## Comment this section to install from a patched CRI-O binary
-  # provisioner "shell" {
-  #   inline_shebang = "/usr/bin/env bash"
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
 
-  #   inline = [
-  #     "set -o pipefail -o errexit",
+    inline = [
+      "set -o pipefail -o errexit",
 
-  #     "echo '>>> Sysbox CRI-O patch'",
-  #     "echo Adding the Go backports repository",
-  #     "sudo apt-get install --yes --no-install-recommends software-properties-common",
-  #     "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
+      "echo '>>> Sysbox CRI-O patch'",
+      "echo Adding the Go backports repository",
+      "sudo apt-get install --yes --no-install-recommends software-properties-common",
+      "sudo add-apt-repository --yes ppa:longsleep/golang-backports",
 
-  #     "echo Installing Go",
-  #     "sudo apt-get update",
-  #     # todo(maximsmol): lock the golang version
-  #     "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
+      "echo Installing Go",
+      "sudo apt-get update",
+      # todo(maximsmol): lock the golang version
+      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
 
-  #     "echo Cloning the patched CRI-O repository",
-  #     "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
+      # "echo Cloning the patched CRI-O repository",
+      # "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
 
-  #     "echo Building",
-  #     "cd cri-o",
-  #     "make binaries",
+      # "echo Building",
+      # "cd cri-o",
+      # "make binaries",
 
-  #     "echo Installing the patched binary",
-  #     "sudo mv bin/crio /usr/bin/crio",
-  #     "sudo chmod u+x /usr/bin/crio",
+      # "echo Installing the patched binary",
+      # "sudo mv bin/crio /usr/bin/crio",
+      # "sudo chmod u+x /usr/bin/crio",
 
 
-  #     "echo Cleaning up",
-  #     "cd ..",
-  #     "rm -rf cri-o",
+      # "echo Cleaning up",
+      # "cd ..",
+      # "rm -rf cri-o",
 
-  #     "echo Restarting CRI-O",
-  #     "sudo systemctl restart crio"
-  #   ]
-  # }
+      "echo Restarting CRI-O",
+      "sudo systemctl restart crio"
+    ]
+  }
 
   provisioner "file" {
     source      = "bootstrap.sh.patch"
