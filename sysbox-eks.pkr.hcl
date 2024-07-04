@@ -416,4 +416,15 @@ build {
       "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'"
     ]
   }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "sudo iptables -P INPUT ACCEPT",
+      "sudo iptables -P FORWARD ACCEPT",
+      "sudo iptables -P OUTPUT ACCEPT",
+      "sudo iptables -F",
+    ]
+  }
+
 }
