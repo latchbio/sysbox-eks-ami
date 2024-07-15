@@ -17,6 +17,8 @@ variable "sysbox_version" {
   }
 }
 
+# ubuntu-eks/k8s_1.28/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-
+
 variable "k8s_version" {
   type    = string
   default = "1.29"
@@ -25,7 +27,7 @@ variable "k8s_version" {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
     error_message = "Invalid K8s version: expected '{major}.{minor}'."
   }
-}q
+}
 
 variable "nvidia_driver_version" {
   type    = string
@@ -82,8 +84,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      # later versions than 2024-01-25 have kernel version > 6.2 which are not yet supported by shiftfs (should update when available, last checked 2024-04-12)
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240125"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240521"
     }
     owners = ["099720109477"]
   }
@@ -151,40 +152,6 @@ build {
       "sudo mv /home/ubuntu/systemd/system/sysbox-fs.service /lib/systemd/system/sysbox-fs.service",
       "sudo mv /home/ubuntu/systemd/system/sysbox.service /lib/systemd/system/sysbox.service",
       "sudo mkdir /var/log/sysbox"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-shiftfs
-      "echo '>>> Shiftfs'",
-
-      "echo Installing dependencies",
-      "sudo apt-get update",
-      "sudo apt-get install --yes --no-install-recommends make dkms git",
-
-      "echo Detecting kernel version to determine the correct branch",
-      "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
-      "echo \"$kernel_version\"",
-      "declare -A kernel_to_branch=( [6.2]=k6.1 [6.1]=k6.1 [5.19]=k5.18 [5.18]=k5.18 [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
-      "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
-
-      "echo Cloning the repository branch: $branch",
-      "git clone --branch $branch --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
-      "cd shiftfs",
-
-      "echo Running the update script",
-      "./update1",
-
-      "echo Building and installing",
-      "sudo make --file Makefile.dkms",
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf shiftfs"
     ]
   }
 
@@ -261,7 +228,7 @@ build {
       "echo Installing Go",
       "sudo apt-get update",
       # todo(maximsmol): lock the golang version
-      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
+      "sudo apt-get install --yes --no-install-recommends git build-essential golang-go libgpgme-dev pkg-config libseccomp-dev",
 
       "echo Cloning the patched CRI-O repository",
       "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
@@ -273,7 +240,6 @@ build {
       "echo Installing the patched binary",
       "sudo mv bin/crio /usr/bin/crio",
       "sudo chmod u+x /usr/bin/crio",
-
 
       "echo Cleaning up",
       "cd ..",
