@@ -112,6 +112,22 @@ build {
     ]
   }
 
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Installing latch'",
+      "curl --location --fail --remote-name https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh",
+      "sudo bash Mambaforge-Linux-x86_64.sh -b -p /opt/mamba -u",
+      "rm Mambaforge-Linux-x86_64.sh",
+
+      "sudo /opt/mamba/bin/mamba create --copy -y -p /opt/latch-env python=3.11",
+      "sudo /opt/latch-env/bin/pip install latch==2.47.7"
+    ]
+  }
+
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
@@ -386,4 +402,5 @@ build {
       "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'"
     ]
   }
+
 }
