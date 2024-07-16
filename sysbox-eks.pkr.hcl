@@ -264,6 +264,20 @@ build {
     ]
   }
 
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Conmon Install'",
+      "sudo apt-get install libc6-dev libglib2.0-dev runc",
+      "git clone https://github.com/containers/conmon.git",
+      "cd conmon",
+      "make",
+      "sudo make install",
+      "cd ..",
+      "rm -rf conmon"
+    ]
+  }
+
   provisioner "file" {
     source      = "bootstrap.sh.patch"
     destination = "/home/ubuntu/bootstrap.sh.patch"
