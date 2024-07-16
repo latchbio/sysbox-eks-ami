@@ -17,8 +17,6 @@ variable "sysbox_version" {
   }
 }
 
-# ubuntu-eks/k8s_1.28/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-
-
 variable "k8s_version" {
   type    = string
   default = "1.29"
