@@ -31,7 +31,7 @@ variable "k8s_version" {
 
 variable "nvidia_driver_version" {
   type    = string
-  default = "530.30.02-0ubuntu1"
+  default = "535.183.01-0ubuntu0.22.04.1"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+-.*$", var.nvidia_driver_version))
@@ -60,7 +60,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.nvidia_driver_version}/latch-${local.git_branch}"
+  expression = "sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.nvidia_driver_version}/${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
