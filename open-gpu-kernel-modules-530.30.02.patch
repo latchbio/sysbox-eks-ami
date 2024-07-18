@@ -1,6 +1,6 @@
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh
---- open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh	2024-07-18 01:15:21.520922245 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/conftest.sh patched-open-gpu-kernel-modules-530.30.02/kernel-open/conftest.sh
+--- open-gpu-kernel-modules-530.30.02/kernel-open/conftest.sh	2024-07-18 21:09:52.581636662 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/conftest.sh	2024-07-18 21:33:23.867464728 +0000
 @@ -14,6 +14,13 @@
  XEN_PRESENT=1
  PREEMPT_RT_PRESENT=0
@@ -814,32 +814,32 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
 -                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE" | append_conftest "functions"
 +                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" ]; then
 +                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" | append_conftest "functions"
-+                else
-+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" | append_conftest "functions"
-+                fi
-+
-+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" ]; then
-+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
                  else
 -                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE" | append_conftest "functions"
-+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
++                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_WRITE_FORCE_VMAS" | append_conftest "functions"
                  fi
  
 -                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE" ]; then
 -                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE" | append_conftest "functions"
-+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" ]; then
-+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
++                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" ]; then
++                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
                  else
 -                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE" | append_conftest "functions"
-+                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
++                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
                  fi
  
 -                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS" ]; then
 -                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS" | append_conftest "functions"
-+                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" ]; then
-+                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" | append_conftest "functions"
++                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" ]; then
++                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
                  else
 -                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS" | append_conftest "functions"
++                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
++                fi
++
++                if [ "$1" = "NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" ]; then
++                    echo "#define NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" | append_conftest "functions"
++                else
 +                    echo "#undef NV_GET_USER_PAGES_HAS_ARGS_FLAGS_VMAS" | append_conftest "functions"
                  fi
  
@@ -951,32 +951,32 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
 -                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_WRITE_FORCE" | append_conftest "functions"
 +                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_WRITE_FORCE_VMAS" ]; then
 +                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
++                else
++                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
++                fi
++
++                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_VMAS" ]; then
++                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
                  else
 -                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_WRITE_FORCE" | append_conftest "functions"
-+                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_WRITE_FORCE_VMAS" | append_conftest "functions"
++                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
                  fi
  
 -                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS" ]; then
 -                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS" | append_conftest "functions"
-+                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_VMAS" ]; then
-+                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
++                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED_VMAS" ]; then
++                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED_VMAS" | append_conftest "functions"
                  else
 -                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS" | append_conftest "functions"
-+                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_VMAS" | append_conftest "functions"
++                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED_VMAS" | append_conftest "functions"
                  fi
  
 -                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED" ]; then
 -                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED" | append_conftest "functions"
-+                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED_VMAS" ]; then
-+                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED_VMAS" | append_conftest "functions"
-                 else
--                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED" | append_conftest "functions"
-+                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED_VMAS" | append_conftest "functions"
-+                fi
-+
 +                if [ "$1" = "NV_GET_USER_PAGES_REMOTE_HAS_ARGS_FLAGS_LOCKED_VMAS" ]; then
 +                    echo "#define NV_GET_USER_PAGES_REMOTE_HAS_ARGS_FLAGS_LOCKED_VMAS" | append_conftest "functions"
-+                else
+                 else
+-                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_TSK_FLAGS_LOCKED" | append_conftest "functions"
 +                    echo "#undef NV_GET_USER_PAGES_REMOTE_HAS_ARGS_FLAGS_LOCKED_VMAS" | append_conftest "functions"
                  fi
  
@@ -1123,8 +1123,7 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
 +
 +            $CC $CFLAGS -c conftest$$.c > /dev/null 2>&1
 +            rm -f conftest$$.c
- 
--            compile_check_conftest "$CODE" "NV_PIN_USER_PAGES_PRESENT" "" "functions"
++
 +            if [ -f conftest$$.o ]; then
 +                set_pin_user_pages_defines ""
 +                rm -f conftest$$.o
@@ -1141,7 +1140,8 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
 +                    		    struct vm_area_struct **vmas) {
 +                return 0;
 +            }" > conftest$$.c
-+
+ 
+-            compile_check_conftest "$CODE" "NV_PIN_USER_PAGES_PRESENT" "" "functions"
 +            $CC $CFLAGS -c conftest$$.c > /dev/null 2>&1
 +            rm -f conftest$$.c
 +
@@ -1179,14 +1179,14 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
 -                    echo "#define NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK" | append_conftest "functions"
 +                if [ "$1" = "NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK_VMAS" ]; then
 +                    echo "#define NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK_VMAS" | append_conftest "functions"
-+                else
+                 else
+-                    echo "#undef NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK" | append_conftest "functions"
 +                    echo "#undef NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK_VMAS" | append_conftest "functions"
 +                fi
 +
 +                if [ "$1" = "NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_VMAS" ]; then
 +                    echo "#define NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_VMAS" | append_conftest "functions"
-                 else
--                    echo "#undef NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_TSK" | append_conftest "functions"
++                else
 +                    echo "#undef NV_PIN_USER_PAGES_REMOTE_HAS_ARGS_VMAS" | append_conftest "functions"
                  fi
              }
@@ -1438,7 +1438,7 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
              CODE="
              #include <drm/drm_mode.h>
              #include <drm/drm_fourcc.h>
-@@ -4238,11 +4823,11 @@
+@@ -4238,15 +4823,32 @@
              # Added by commit 361a3bf00582 ("time64: Add time64.h header and
              # define struct timespec64") in 3.17 (2014-07-16)
              #
@@ -1454,7 +1454,28 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
              compile_check_conftest "$CODE" "NV_TIMESPEC64_PRESENT" "" "types"
  
          ;;
-@@ -4254,26 +4839,44 @@
+ 
++        pgprot_decrypted)
++            #
++            # Determine if the macro 'pgprot_decrypted()' is present.
++            #
++            # Added by commit 21729f81ce8a ("x86/mm: Provide general kernel
++            # support for memory encryption") in v4.14 (2017-07-18)
++            CODE="
++            #include <asm/pgtable.h>
++
++            void conftest_pgprot_decrypted(void)
++                if(pgprot_decrypted()) {}
++            }"
++
++            compile_check_conftest "$CODE" "NV_PGPROT_DECRYPTED_PRESENT" "" "functions"
++
++        ;;
++
+         vmalloc_has_pgprot_t_arg)
+             #
+             # Determine if __vmalloc has the 'pgprot' argument.
+@@ -4254,15 +4856,15 @@
              # The third argument to __vmalloc, page protection
              # 'pgprot_t prot', was removed by commit 88dca4ca5a93
              # (mm: remove the pgprot argument to __vmalloc)
@@ -1478,27 +1499,7 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
              compile_check_conftest "$CODE" "NV_VMALLOC_HAS_PGPROT_T_ARG" "" "types"
  
          ;;
- 
-+        pgprot_decrypted)
-+            #
-+            # Determine if the macro 'pgprot_decrypted()' is present.
-+            #
-+            # Added by commit 21729f81ce8a ("x86/mm: Provide general kernel
-+            # support for memory encryption") in v4.14 (2017-07-18)
-+            CODE="
-+            #include <asm/pgtable.h>
-+
-+            void conftest_pgprot_decrypted(void)
-+                if(pgprot_decrypted()) {}
-+            }"
-+
-+            compile_check_conftest "$CODE" "NV_PGPROT_DECRYPTED_PRESENT" "" "functions"
-+
-+        ;;
-+
-         mm_has_mmap_lock)
-             #
-             # Determine if the 'mm_struct' structure has a 'mmap_lock' field.
+@@ -4273,7 +4875,8 @@
              #
              # Kernel commit da1c55f1b272 ("mmap locking API: rename mmap_sem
              # to mmap_lock") replaced the field 'mmap_sem' by 'mmap_lock'
@@ -2367,24 +2368,28 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
              #
              CODE="
              #include <linux/iommu.h>
-@@ -5685,10 +6486,9 @@
-             # Determine if the 'vm_area_struct' structure has
-             # const 'vm_flags'.
-             #
--            # A union of '__vm_flags' and 'const vm_flags' was added 
--            # by commit bc292ab00f6c ("mm: introduce vma->vm_flags
--            # wrapper functions") in mm-stable branch (2023-02-09)
--            # of the akpm/mm maintainer tree.
+@@ -5680,11 +6481,456 @@
+             compile_check_conftest "$CODE" "NV_IOMMU_SVA_BIND_DEVICE_HAS_DRVDATA_ARG" "" "types"
+         ;;
+ 
++        vm_area_struct_has_const_vm_flags)
++            #
++            # Determine if the 'vm_area_struct' structure has
++            # const 'vm_flags'.
++            #
 +            # A union of '__vm_flags' and 'const vm_flags' was added by
 +            # commit bc292ab00f6c ("mm: introduce vma->vm_flags wrapper
 +            # functions") in v6.3.
-             #
-             CODE="
-             #include <linux/mm_types.h>
-@@ -5699,11 +6499,438 @@
-             compile_check_conftest "$CODE" "NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS" "" "types"
-         ;;
- 
++            #
++            CODE="
++            #include <linux/mm_types.h>
++            int conftest_vm_area_struct_has_const_vm_flags(void) {
++                return offsetof(struct vm_area_struct, __vm_flags);
++            }"
++
++            compile_check_conftest "$CODE" "NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS" "" "types"
++        ;;
++
 +        drm_driver_has_dumb_destroy)
 +            #
 +            # Determine if the 'drm_driver' structure has a 'dumb_destroy'
@@ -2823,7 +2828,7 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
  
          *)
              # Unknown test name given
-@@ -5998,17 +7225,25 @@
+@@ -5979,17 +7225,25 @@
          #
          VERBOSE=$6
          iommu=CONFIG_VFIO_IOMMU_TYPE1
@@ -2849,7 +2854,7 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
              if (test_configuration_option ${mdev} || test_configuration_option ${mdev}_MODULE); then
                  VFIO_MDEV_PRESENT=1
              fi
-@@ -6017,32 +7252,37 @@
+@@ -5998,32 +7252,37 @@
                  KVM_PRESENT=1
              fi
  
@@ -2908,9 +2913,50 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/conftest.sh patched-open-
              fi
              exit 1
          else
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia/os-mlock.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia/os-mlock.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia/os-mlock.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia/os-mlock.c	2024-07-18 01:23:21.774325894 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/nv-mmap.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/nv-mmap.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/nv-mmap.c	2024-07-18 21:09:52.601636914 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/nv-mmap.c	2024-07-18 22:04:02.098745341 +0000
+@@ -458,7 +458,7 @@
+     }
+ 
+     // Needed for the linux kernel for mapping compound pages
+-    vma->vm_flags |= VM_MIXEDMAP;
++    vm_flags_set(vma, VM_MIXEDMAP);
+ 
+     for (i = 0, addr = mmap_context->page_array[0]; i < pages;
+          addr = mmap_context->page_array[++i], start += PAGE_SIZE)
+@@ -603,7 +603,7 @@
+         }
+         up(&nvl->mmap_lock);
+ 
+-        vma->vm_flags |= VM_IO | VM_PFNMAP | VM_DONTEXPAND;
++        vm_flags_set(vma, (VM_IO | VM_PFNMAP | VM_DONTEXPAND));
+     }
+     else
+     {
+@@ -670,15 +670,15 @@
+ 
+         NV_PRINT_AT(NV_DBG_MEMINFO, at);
+ 
+-        vma->vm_flags |= (VM_IO | VM_LOCKED | VM_RESERVED);
+-        vma->vm_flags |= (VM_DONTEXPAND | VM_DONTDUMP);
++        vm_flags_set(vma, (VM_IO | VM_LOCKED | VM_RESERVED));
++        vm_flags_set(vma, (VM_DONTEXPAND | VM_DONTDUMP));
+     }
+ 
+     if ((prot & NV_PROTECT_WRITEABLE) == 0)
+     {
+         vma->vm_page_prot = NV_PGPROT_READ_ONLY(vma->vm_page_prot);
+-        vma->vm_flags &= ~VM_WRITE;
+-        vma->vm_flags &= ~VM_MAYWRITE;
++        vm_flags_clear(vma, VM_WRITE);
++        vm_flags_clear(vma, VM_MAYWRITE);
+     }
+ 
+     vma->vm_ops = &nv_vm_ops;
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/os-mlock.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/os-mlock.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/os-mlock.c	2024-07-18 21:09:52.601636914 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia/os-mlock.c	2024-07-18 21:46:43.981644753 +0000
 @@ -243,7 +243,7 @@
  
      nv_mmap_read_lock(mm);
@@ -2920,9 +2966,9 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia/os-mlock.c patched
      nv_mmap_read_unlock(mm);
      pinned = ret;
  
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-drv.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-drv.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-drv.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-drv.c	2024-07-18 01:34:26.163739833 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-drv.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-drv.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-drv.c	2024-07-18 21:09:52.581636662 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-drv.c	2024-07-18 21:52:53.626337678 +0000
 @@ -1436,7 +1436,6 @@
  
      nv_drm_driver.dumb_create      = nv_drm_dumb_create;
@@ -2931,9 +2977,25 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-drv
  #endif /* NV_DRM_ATOMIC_MODESET_AVAILABLE */
  }
  
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-linux.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-linux.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-linux.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-linux.c	2024-07-18 01:36:17.657244159 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-gem-user-memory.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-gem-user-memory.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-gem-user-memory.c	2024-07-18 21:09:52.585636712 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-gem-user-memory.c	2024-07-18 21:57:14.765590256 +0000
+@@ -92,9 +92,9 @@
+         return -EINVAL;
+     }
+ 
+-    vma->vm_flags &= ~VM_PFNMAP;
+-    vma->vm_flags &= ~VM_IO;
+-    vma->vm_flags |= VM_MIXEDMAP;
++    vm_flags_clear(vma, VM_PFNMAP);
++    vm_flags_clear(vma, VM_IO);
++    vm_flags_clear(vma, VM_MIXEDMAP);
+ 
+     return 0;
+ }
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-linux.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-linux.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-linux.c	2024-07-18 21:09:52.585636712 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-drm/nvidia-drm-linux.c	2024-07-18 21:53:30.638808632 +0000
 @@ -112,7 +112,7 @@
      nv_mmap_read_lock(mm);
  
@@ -2943,9 +3005,18 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-drm/nvidia-drm-lin
      nv_mmap_read_unlock(mm);
  
      if (pages_pinned < 0 || (unsigned)pages_pinned < pages_count) {
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm.c	2024-07-18 01:24:46.008466510 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm.c	2024-07-18 21:09:52.589636762 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm.c	2024-07-18 21:49:08.815481617 +0000
+@@ -696,7 +696,7 @@
+     // of removing CPU mappings in the parent on fork()+exec(). Users can call
+     // madvise(MDV_DOFORK) if the child process requires access to the
+     // allocation.
+-    vma->vm_flags |= VM_MIXEDMAP | VM_DONTEXPAND | VM_DONTCOPY;
++    vm_flags_set(vma, (VM_MIXEDMAP | VM_DONTEXPAND | VM_DONTCOPY));
+ 
+     vma->vm_ops = &uvm_vm_ops_managed;
+ 
 @@ -919,7 +919,7 @@
      // are not used because unload_state_buf may be a managed memory pointer and
      // therefore a locking assertion from the CPU fault handler could be fired.
@@ -2955,9 +3026,9 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm.c patched-
      nv_mmap_read_unlock(current->mm);
  
      if (ret < 0)
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_populate_pageable.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_populate_pageable.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_populate_pageable.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_populate_pageable.c	2024-07-18 01:31:39.867373041 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_populate_pageable.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_populate_pageable.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_populate_pageable.c	2024-07-18 21:09:52.593636813 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_populate_pageable.c	2024-07-18 21:51:38.829386598 +0000
 @@ -98,9 +98,9 @@
          uvm_record_unlock_mmap_lock_read(mm);
  
@@ -2970,9 +3041,9 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_populate_p
  
      if (uvm_managed_vma)
          uvm_record_lock_mmap_lock_read(mm);
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_tools.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_tools.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_tools.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_tools.c	2024-07-18 01:27:55.032308144 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_tools.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_tools.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_tools.c	2024-07-18 21:09:52.597636863 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_tools.c	2024-07-18 21:49:30.659758412 +0000
 @@ -261,7 +261,7 @@
      }
  
@@ -2982,9 +3053,9 @@ diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_tools.c pa
      nv_mmap_read_unlock(current->mm);
      if (ret != num_pages) {
          status = NV_ERR_INVALID_ARGUMENT;
-diff -ru open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_va_space_mm.c patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_va_space_mm.c
---- open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_va_space_mm.c	2023-03-23 18:00:12.000000000 +0000
-+++ patched-open-gpu-kernel-modules-530.41.03/kernel-open/nvidia-uvm/uvm_va_space_mm.c	2024-07-18 01:28:47.771146710 +0000
+diff -ru open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_va_space_mm.c patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_va_space_mm.c
+--- open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_va_space_mm.c	2024-07-18 21:09:52.597636863 +0000
++++ patched-open-gpu-kernel-modules-530.30.02/kernel-open/nvidia-uvm/uvm_va_space_mm.c	2024-07-18 21:49:59.952130173 +0000
 @@ -613,7 +613,7 @@
      UVM_ASSERT(IS_ALIGNED(addr, sizeof(*val)));
  
