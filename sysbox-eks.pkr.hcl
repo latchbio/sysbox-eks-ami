@@ -88,7 +88,7 @@ source "amazon-ebs" "ubuntu-eks" {
   }
 
   launch_block_device_mappings {
-    device_name = "/dev/xvda"
+    device_name = "/dev/sda1"
     volume_size = 30
     volume_type = "gp3"
     delete_on_termination = true
@@ -399,7 +399,7 @@ build {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "echo '>>> Installing NVIDIA Drivers 530'",
-      "wget https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run",
+      "wget --quiet https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run",
       "sudo sh cuda_12.1.0_530.30.02_linux.run --extract=/home/ubuntu/530.30.02",
       "rm cuda_12.1.0_530.30.02_linux.run",
       "cd /home/ubuntu/530.30.02",
@@ -417,7 +417,7 @@ build {
 
       "echo '>>> Configuring NVIDIA Drivers 530'",
 
-      "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
+      "wget --quiet https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
       "sudo dpkg -i cuda-keyring_1.0-1_all.deb",
       "rm cuda-keyring_1.0-1_all.deb",
 
