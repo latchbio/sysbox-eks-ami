@@ -368,30 +368,31 @@ build {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "echo '>>> Downloading NVIDIA Kernel Module Source'",
-      "wget https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/530.41.03.tar.gz",
-      "tar -xvf 530.41.03.tar.gz",
-      "rm 530.41.03.tar.gz"
+      "wget https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/530.30.02.tar.gz",
+      "tar -xvf 530.30.02.tar.gz",
+      "rm 530.30.02.tar.gz"
     ]
   }
 
   provisioner "file" {
-    source      = "open-gpu-kernel-modules-530.41.03.patch"
-    destination = "/home/ubuntu/open-gpu-kernel-modules-530.41.03.patch"
+    source      = "open-gpu-kernel-modules-530.30.02.patch"
+    destination = "/home/ubuntu/open-gpu-kernel-modules-530.30.02.patch"
   }
 
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "echo '>>> Patching NVIDIA Kernel Module Source'",
-      "sudo patch -p0 < /home/ubuntu/open-gpu-kernel-modules-530.41.03.patch",
-      "rm /home/ubuntu/open-gpu-kernel-modules-530.41.03.patch",
+      "sudo patch -p0 < /home/ubuntu/open-gpu-kernel-modules-530.30.02.patch",
+      "rm /home/ubuntu/open-gpu-kernel-modules-530.30.02.patch",
 
       "echo '>>> Building NVIDIA Kernel Module Source'",
-      "cd open-gpu-kernel-modules-530.41.03",
+      "cd open-gpu-kernel-modules-530.30.02",
       "sudo make modules -j$(nproc)",
       "sudo make modules_install -j$(nproc)",
 
-      "sudo rm -rf open-gpu-kernel-modules-530.41.03"
+      "sudo rm -rf open-gpu-kernel-modules-530.30.02",
+      "sudo depmod -A"
     ]
   }
 
