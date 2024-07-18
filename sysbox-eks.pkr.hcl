@@ -87,17 +87,18 @@ source "amazon-ebs" "ubuntu-eks" {
     owners = ["099720109477"]
   }
 
+  launch_block_device_mappings {
+    device_name = "/dev/xvda"
+    volume_size = 30
+    volume_type = "gp3"
+    delete_on_termination = true
+  }
+
   region        = "us-west-2"
   instance_type = "t2.micro"
   ssh_username  = "ubuntu"
   temporary_key_pair_type = "ed25519"
   ssh_handshake_attempts = 100
-
-  root_block_device {
-    volume_size = 30
-    volume_type = "gp3"
-    delete_on_termination = true
-  }
 }
 
 build {
