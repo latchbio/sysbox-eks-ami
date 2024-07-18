@@ -469,6 +469,10 @@ build {
       "sudo apt-get update",
       "sudo apt-get install -y nvidia-container-toolkit",
       "sudo nvidia-ctk runtime configure --runtime=crio --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf",
+
+      "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
+      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'",
+
       "sudo systemctl restart crio"
     ]
   }
