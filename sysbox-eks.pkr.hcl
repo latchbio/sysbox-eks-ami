@@ -92,6 +92,12 @@ source "amazon-ebs" "ubuntu-eks" {
   ssh_username  = "ubuntu"
   temporary_key_pair_type = "ed25519"
   ssh_handshake_attempts = 100
+
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+    delete_on_termination = true
+  }
 }
 
 build {
@@ -360,15 +366,61 @@ build {
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
+      "echo '>>> Downloading NVIDIA Kernel Module Source'",
+      "wget https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/530.41.03.tar.gz",
+      "tar -xvf 530.41.03.tar.gz",
+      "rm 530.41.03.tar.gz"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "open-gpu-kernel-modules-530.41.03.patch"
+    destination = "/home/ubuntu/open-gpu-kernel-modules-530.41.03.patch"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Patching NVIDIA Kernel Module Source'",
+      "sudo patch -p0 < /home/ubuntu/open-gpu-kernel-modules-530.41.03.patch",
+      "rm /home/ubuntu/open-gpu-kernel-modules-530.41.03.patch",
+
+      "echo '>>> Building NVIDIA Kernel Module Source'",
+      "cd open-gpu-kernel-modules-530.41.03",
+      "sudo make modules -j$(nproc)",
+      "sudo make modules_install -j$(nproc)",
+
+      "sudo rm -rf open-gpu-kernel-modules-530.41.03"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Installing NVIDIA Drivers 530'",
+      "wget https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run",
+      "sudo sh cuda_12.1.0_530.30.02_linux.run --extract=/home/ubuntu/530.30.02",
+      "rm cuda_12.1.0_530.30.02_linux.run",
+      "cd /home/ubuntu/530.30.02",
+      "sudo ./NVIDIA-Linux-x86_64-530.30.02.run --no-kernel-modules --silent",
+      "cd /home/ubuntu",
+      "sudo rm -rf 530.30.02"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
       "set -o pipefail -o errexit",
       "export DEBIAN_FRONTEND=noninteractive",
+
+      "echo '>>> Configuring NVIDIA Drivers 530'",
 
       "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
       "sudo dpkg -i cuda-keyring_1.0-1_all.deb",
       "rm cuda-keyring_1.0-1_all.deb",
 
       "sudo apt-get update",
-      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install libnvidia-common-530=${var.nvidia_driver_version} libnvidia-gl-530=${var.nvidia_driver_version} nvidia-kernel-common-530=${var.nvidia_driver_version} nvidia-dkms-530=${var.nvidia_driver_version} nvidia-kernel-source-530=${var.nvidia_driver_version} libnvidia-compute-530=${var.nvidia_driver_version} libnvidia-extra-530=${var.nvidia_driver_version} nvidia-compute-utils-530=${var.nvidia_driver_version} libnvidia-decode-530=${var.nvidia_driver_version} libnvidia-encode-530=${var.nvidia_driver_version} nvidia-utils-530=${var.nvidia_driver_version} xserver-xorg-video-nvidia-530=${var.nvidia_driver_version} libnvidia-cfg1-530=${var.nvidia_driver_version} libnvidia-fbc1-530=${var.nvidia_driver_version} nvidia-driver-530=${var.nvidia_driver_version} nvidia-container-toolkit",
       "sudo apt-mark hold libnvidia-common-530 libnvidia-gl-530 nvidia-kernel-common-530 nvidia-dkms-530 nvidia-kernel-source-530 libnvidia-compute-530 libnvidia-extra-530 nvidia-compute-utils-530 libnvidia-decode-530 libnvidia-encode-530 nvidia-utils-530 xserver-xorg-video-nvidia-530 libnvidia-cfg1-530 libnvidia-fbc1-530 nvidia-driver-530",
 
       # enable mounting FUSE device inside of containers
