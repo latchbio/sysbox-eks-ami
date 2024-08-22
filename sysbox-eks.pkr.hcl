@@ -376,12 +376,7 @@ build {
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
       # /usr/local/share/eks/bootstrap.sh is symlinked to /etc/eks/boostrap.sh
-      "sudo patch --backup /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch",
-
-      "echo Restarting CRI-O",
-      "sudo systemctl restart crio",
-      "if ! systemctl is-active --quiet crio; then echo 'CRI-O is not running'; exit 1; fi",
-      "echo 'CRI-O is running'",
+      "sudo patch --backup /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
     ]
   }
 
