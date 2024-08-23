@@ -1,6 +1,6 @@
 variable "ubuntu_version" {
 
-  default = "noble-24.04"
+  default = "focal-20.04"
 
   validation {
     condition     = can(regex("^\\w+-\\d+\\.\\d+$", var.ubuntu_version))
@@ -211,7 +211,7 @@ build {
       "echo '>>> CRI-O'",
 
       # fixme(maximsmol): take into account ${ubuntu_version}
-      "export OS='xUbuntu_24.04'",
+      "export OS='xUbuntu_20.04'",
       "export VERSION='${var.k8s_version}'",
 
       "echo Adding repositories",
@@ -434,7 +434,6 @@ build {
     ]
   }
 
-
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
@@ -443,6 +442,16 @@ build {
       "echo '>>> Patching kubelet config'",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'kubeletconfig.failSwapOn' false",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'kubeletconfig.featureGates.NodeSwap' true",
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Use cgroup2'",
+      "sudo grubby --update-kernel=/boot/vmlinuz-$(uname -r) --args='systemd.unified_cgroup_hierarchy=1'",
     ]
   }
 }
