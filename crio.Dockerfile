@@ -53,7 +53,7 @@ run --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
 <<DKR
   git clone \
-    --branch v1.28-sysbox \
+    --branch v1.29-sysbox \
     --depth 1 \
     --shallow-submodules \
     https://github.com/nestybox/cri-o.git \

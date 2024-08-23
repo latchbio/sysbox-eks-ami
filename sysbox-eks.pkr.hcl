@@ -1,7 +1,6 @@
 variable "ubuntu_version" {
-
-  default = "focal-20.04"
-
+  type    = string
+  default = "jammy-22.04"
   validation {
     condition     = can(regex("^\\w+-\\d+\\.\\d+$", var.ubuntu_version))
     error_message = "Invalid Ubuntu version: expected '{name}-{major}.{minor}'."
@@ -20,7 +19,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.28"
+  default = "1.29"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -30,7 +29,7 @@ variable "k8s_version" {
 
 variable "nvidia_driver_version" {
   type    = string
-  default = "530.30.02-0ubuntu1"
+  default = "535.183.01-0ubuntu0.22.04.1"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+-.*$", var.nvidia_driver_version))
@@ -59,7 +58,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.nvidia_driver_version}/latch-${local.git_branch}"
+  expression = "sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.nvidia_driver_version}/${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -83,14 +82,23 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240411"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240521"
     }
     owners = ["099720109477"]
+  }
+
+  launch_block_device_mappings {
+    device_name = "/dev/sda1"
+    volume_size = 30
+    volume_type = "gp3"
+    delete_on_termination = true
   }
 
   region        = "us-west-2"
   instance_type = "t2.micro"
   ssh_username  = "ubuntu"
+  temporary_key_pair_type = "ed25519"
+  ssh_handshake_attempts = 100
 }
 
 build {
@@ -173,61 +181,27 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
-      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-shiftfs
-      "echo '>>> Shiftfs'",
-
-      "echo Installing dependencies",
-      "sudo apt-get update",
-      "sudo apt-get install --yes --no-install-recommends make dkms git",
-
-      "echo Detecting kernel version to determine the correct branch",
-      "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
-      "echo \"$kernel_version\"",
-      "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
-      "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
-
-      "echo Cloning the repository branch: $branch",
-      "git clone --branch $branch --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
-      "cd shiftfs",
-
-      "echo Running the update script",
-      "./update1",
-
-      "echo Building and installing",
-      "sudo make --file Makefile.dkms",
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf shiftfs"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
       # https://github.com/cri-o/cri-o/blob/a68a72071e5004be78fe2b1b98cb3bfa0e51b74b/install.md#apt-based-operating-systems
       "echo '>>> CRI-O'",
 
       # fixme(maximsmol): take into account ${ubuntu_version}
-      "export OS='xUbuntu_20.04'",
-      "export VERSION='${var.k8s_version}'",
+      "export PROJECT_PATH='prerelease:/main'",
+      "export VERSION='v${var.k8s_version}'",
 
-      "echo Adding repositories",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list",
+      "echo Adding keys and repositories",
+      "mkdir --parents /etc/apt/keyrings",
 
-      "echo Adding keys",
-      "mkdir --parents /usr/share/keyrings",
-      "curl --location https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-archive-keyring.gpg",
-      "curl --location https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg",
+      "curl -fsSL https://pkgs.k8s.io/core:/stable:/$VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
+      "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$VERSION/deb/ /\" | sudo tee /etc/apt/sources.list.d/kubernetes.list",
+
+      "curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg",
+      "echo \"deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/ /\" | sudo tee /etc/apt/sources.list.d/cri-o.list",
 
       "echo Updating apt",
       "sudo apt-get update",
 
       "echo Installing CRI-O",
-      "sudo apt-get install --yes --no-install-recommends cri-o cri-o-runc",
+      "sudo apt-get install --yes --no-install-recommends cri-o",
 
       "export CRICTL_VERSION='v${var.k8s_version}.0'",
       "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
@@ -275,7 +249,7 @@ build {
       "echo Installing Go",
       "sudo apt-get update",
       # todo(maximsmol): lock the golang version
-      "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
+      "sudo apt-get install --yes --no-install-recommends git build-essential golang-go libgpgme-dev pkg-config libseccomp-dev",
 
       "echo Cloning the patched CRI-O repository",
       "git clone --branch v${var.k8s_version}-sysbox --depth 1 --shallow-submodules https://github.com/nestybox/cri-o.git cri-o",
@@ -288,13 +262,26 @@ build {
       "sudo mv bin/crio /usr/bin/crio",
       "sudo chmod u+x /usr/bin/crio",
 
-
       "echo Cleaning up",
       "cd ..",
       "rm -rf cri-o",
 
       "echo Restarting CRI-O",
       "sudo systemctl restart crio"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Conmon Install'",
+      "sudo apt-get install --yes --no-install-recommends libc6-dev libglib2.0-dev runc",
+      "git clone https://github.com/containers/conmon.git",
+      "cd conmon",
+      "make",
+      "sudo make install",
+      "cd ..",
+      "sudo rm -rf conmon"
     ]
   }
 
@@ -321,6 +308,8 @@ build {
       "echo Installing Dasel",
       "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 --output /usr/local/bin/dasel",
       "sudo chmod u+x /usr/local/bin/dasel",
+
+      "sudo touch /etc/crio/crio.conf",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
@@ -379,15 +368,62 @@ build {
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
+      "echo '>>> Downloading NVIDIA Kernel Module Source'",
+      "wget https://github.com/NVIDIA/open-gpu-kernel-modules/archive/refs/tags/530.30.02.tar.gz",
+      "tar -xvf 530.30.02.tar.gz",
+      "rm 530.30.02.tar.gz"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "open-gpu-kernel-modules-530.30.02.patch"
+    destination = "/home/ubuntu/open-gpu-kernel-modules-530.30.02.patch"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Patching NVIDIA Kernel Module Source'",
+      "sudo patch -p0 < /home/ubuntu/open-gpu-kernel-modules-530.30.02.patch",
+      "rm /home/ubuntu/open-gpu-kernel-modules-530.30.02.patch",
+
+      "echo '>>> Building NVIDIA Kernel Module Source'",
+      "cd open-gpu-kernel-modules-530.30.02",
+      "sudo make modules -j$(nproc)",
+      "sudo make modules_install -j$(nproc)",
+
+      "sudo rm -rf open-gpu-kernel-modules-530.30.02",
+      "sudo depmod -A"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Installing NVIDIA Drivers 530'",
+      "wget --quiet https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run",
+      "sudo sh cuda_12.1.0_530.30.02_linux.run --extract=/home/ubuntu/530.30.02",
+      "rm cuda_12.1.0_530.30.02_linux.run",
+      "cd /home/ubuntu/530.30.02",
+      "sudo ./NVIDIA-Linux-x86_64-530.30.02.run --no-kernel-modules --silent",
+      "cd /home/ubuntu",
+      "sudo rm -rf 530.30.02"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
       "set -o pipefail -o errexit",
       "export DEBIAN_FRONTEND=noninteractive",
 
-      "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
+      "echo '>>> Configuring NVIDIA Drivers 530'",
+
+      "wget --quiet https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
       "sudo dpkg -i cuda-keyring_1.0-1_all.deb",
       "rm cuda-keyring_1.0-1_all.deb",
 
       "sudo apt-get update",
-      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install libnvidia-common-530=${var.nvidia_driver_version} libnvidia-gl-530=${var.nvidia_driver_version} nvidia-kernel-common-530=${var.nvidia_driver_version} nvidia-dkms-530=${var.nvidia_driver_version} nvidia-kernel-source-530=${var.nvidia_driver_version} libnvidia-compute-530=${var.nvidia_driver_version} libnvidia-extra-530=${var.nvidia_driver_version} nvidia-compute-utils-530=${var.nvidia_driver_version} libnvidia-decode-530=${var.nvidia_driver_version} libnvidia-encode-530=${var.nvidia_driver_version} nvidia-utils-530=${var.nvidia_driver_version} xserver-xorg-video-nvidia-530=${var.nvidia_driver_version} libnvidia-cfg1-530=${var.nvidia_driver_version} libnvidia-fbc1-530=${var.nvidia_driver_version} nvidia-driver-530=${var.nvidia_driver_version} nvidia-container-toolkit",
       "sudo apt-mark hold libnvidia-common-530 libnvidia-gl-530 nvidia-kernel-common-530 nvidia-dkms-530 nvidia-kernel-source-530 libnvidia-compute-530 libnvidia-extra-530 nvidia-compute-utils-530 libnvidia-decode-530 libnvidia-encode-530 nvidia-utils-530 xserver-xorg-video-nvidia-530 libnvidia-cfg1-530 libnvidia-fbc1-530 nvidia-driver-530",
 
       # enable mounting FUSE device inside of containers
@@ -429,9 +465,17 @@ build {
 
       "sudo dasel put string --parser toml --selector 'crio.runtime.default_runtime' --file /etc/crio/crio.conf 'nvidia'",
       "sudo dasel put object --parser toml --selector 'crio.runtime.runtimes.nvidia' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/nvidia-container-runtime'",
+
+
+      "curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list",
+      "sudo apt-get update",
+      "sudo apt-get install -y nvidia-container-toolkit",
+      "sudo nvidia-ctk runtime configure --runtime=crio --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf",
+
       "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
-      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'"
+      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'",
+
+      "sudo systemctl restart crio"
     ]
   }
-
 }
