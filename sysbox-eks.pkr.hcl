@@ -104,6 +104,22 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
+      "echo '>>> Use cgroup2'",
+      "sudo sed --in-place 's/GRUB_CMDLINE_LINUX_DEFAULT=\"console=tty1 console=ttyS0 nvme_core.io_timeout=4294967295\"/GRUB_CMDLINE_LINUX_DEFAULT=\"console=tty1 console=ttyS0 nvme_core.io_timeout=4294967295 systemd.unified_cgroup_hierarchy=1\"/g' /etc/default/grub.d/50-cloudimg-settings.cfg",
+      "sudo update-grub",
+      "sudo systemctl reboot"
+    ]
+
+    expect_disconnect = true
+    skip_clean        = true
+    pause_after       = "10s"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
       "echo Updating apt",
       "sudo apt-get update -y",
     ]
@@ -299,6 +315,7 @@ build {
   }
 
   provisioner "file" {
+    # reference: https://github.com/awslabs/amazon-eks-ami/blob/main/templates/al2/runtime/bootstrap.sh
     source      = "bootstrap.sh.patch"
     destination = "/home/ubuntu/bootstrap.sh.patch"
   }
@@ -442,16 +459,6 @@ build {
       "echo '>>> Patching kubelet config'",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'kubeletconfig.failSwapOn' false",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'kubeletconfig.featureGates.NodeSwap' true",
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      "echo '>>> Use cgroup2'",
-      "sudo grubby --update-kernel=/boot/vmlinuz-$(uname -r) --args='systemd.unified_cgroup_hierarchy=1'",
     ]
   }
 }
