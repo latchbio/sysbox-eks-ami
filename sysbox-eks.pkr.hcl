@@ -137,7 +137,7 @@ build {
       "rm Mambaforge-Linux-x86_64.sh",
 
       "sudo /opt/mamba/bin/mamba create --copy -y -p /opt/latch-env python=3.11",
-      "sudo /opt/latch-env/bin/pip install latch==2.47.7"
+      "sudo /opt/latch-env/bin/pip install latch==2.53.2"
     ]
   }
 
