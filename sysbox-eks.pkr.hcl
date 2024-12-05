@@ -125,7 +125,7 @@ build {
     ]
   }
 
-
+  // all features which require latch on the node are deprecated
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
