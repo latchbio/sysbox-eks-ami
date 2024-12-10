@@ -389,7 +389,7 @@ build {
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
-      "echo '>>> Installing NVIDIA Drivers 550'",
+      "echo '>>> Installing NVIDIA Drivers 560'",
       "wget --quiet https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run",
       "sudo sh cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run --silent",
       "rm cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run"
@@ -452,7 +452,7 @@ build {
       "curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list",
       "sudo apt-get update",
       "sudo apt-get install -y nvidia-container-toolkit",
-      "sudo nvidia-ctk runtime configure --runtime=sysbox-runc --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf",
+      "sudo nvidia-ctk runtime configure --runtime=crio --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf",
 
       "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
       "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'sysbox-runc'",
