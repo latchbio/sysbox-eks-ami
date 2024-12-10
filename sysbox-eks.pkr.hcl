@@ -1,6 +1,6 @@
 variable "ubuntu_version" {
 
-  default = "focal-20.04"
+  default = "jammy-22.04"
 
   validation {
     condition     = can(regex("^\\w+-\\d+\\.\\d+$", var.ubuntu_version))
@@ -10,7 +10,7 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.6.4"
+  default = "0.6.5"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
@@ -20,7 +20,7 @@ variable "sysbox_version" {
 
 variable "k8s_version" {
   type    = string
-  default = "1.28"
+  default = "1.29"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+$", var.k8s_version))
@@ -28,14 +28,14 @@ variable "k8s_version" {
   }
 }
 
-variable "nvidia_driver_version" {
+variable "cuda_version" {
   type    = string
-  default = "530.30.02-0ubuntu1"
+  default = "12.6.3"
+}
 
-  validation {
-    condition     = can(regex("^\\d+\\.\\d+\\.\\d+-.*$", var.nvidia_driver_version))
-    error_message = "Invalid NVIDIA driver version: expected '{major}.{minor}.{patch}-{build}'."
-  }
+variable "cuda_driver_version" {
+  type    = string
+  default = "560.35.05"
 }
 
 packer {
@@ -59,7 +59,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.nvidia_driver_version}/latch-${local.git_branch}"
+  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.cuda_driver_version}/latch-${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -83,14 +83,23 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240411"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20241204"
     }
     owners = ["099720109477"]
+  }
+
+  launch_block_device_mappings {
+    device_name = "/dev/sda1"
+    volume_size = 30
+    volume_type = "gp3"
+    delete_on_termination = true
   }
 
   region        = "us-west-2"
   instance_type = "t2.micro"
   ssh_username  = "ubuntu"
+  temporary_key_pair_type = "ed25519"
+  ssh_handshake_attempts = 100
 }
 
 build {
@@ -121,7 +130,9 @@ build {
       "set -o pipefail -o errexit",
 
       "echo Updating apt",
-      "sudo apt-get update -y",
+      "sudo apt update --yes",
+      "sudo apt-get update --yes",
+      "sudo apt-get install --yes build-essential git",
     ]
   }
 
@@ -132,11 +143,11 @@ build {
       "set -o pipefail -o errexit",
 
       "echo '>>> Installing latch'",
-      "curl --location --fail --remote-name https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh",
-      "sudo bash Mambaforge-Linux-x86_64.sh -b -p /opt/mamba -u",
-      "rm Mambaforge-Linux-x86_64.sh",
+      "curl --location --fail --remote-name https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh",
+      "sudo bash Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge -u",
+      "rm Miniforge3-Linux-x86_64.sh",
 
-      "sudo /opt/mamba/bin/mamba create --copy -y -p /opt/latch-env python=3.11",
+      "sudo /opt/miniforge/bin/conda create --copy -y -p /opt/latch-env python=3.11",
       "sudo /opt/latch-env/bin/pip install --upgrade latch"
     ]
   }
@@ -189,61 +200,27 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
-      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-shiftfs
-      "echo '>>> Shiftfs'",
-
-      "echo Installing dependencies",
-      "sudo apt-get update",
-      "sudo apt-get install --yes --no-install-recommends make dkms git",
-
-      "echo Detecting kernel version to determine the correct branch",
-      "export kernel_version=\"$(uname -r | sed --regexp-extended 's/([0-9]+\\.[0-9]+).*/\\1/g')\"",
-      "echo \"$kernel_version\"",
-      "declare -A kernel_to_branch=( [5.17]=k5.17 [5.16]=k5.16 [5.15]=k5.16 [5.14]=k5.13 [5.13]=k5.13 [5.10]=k5.10 [5.8]=k5.10 [5.4]=k5.4 )",
-      "export branch=\"$(echo $${kernel_to_branch[$kernel_version]})\"",
-
-      "echo Cloning the repository branch: $branch",
-      "git clone --branch $branch --depth 1 --shallow-submodules https://github.com/toby63/shiftfs-dkms.git shiftfs",
-      "cd shiftfs",
-
-      "echo Running the update script",
-      "./update1",
-
-      "echo Building and installing",
-      "sudo make --file Makefile.dkms",
-
-      "echo Cleaning up",
-      "cd ..",
-      "rm -rf shiftfs"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
       # https://github.com/cri-o/cri-o/blob/a68a72071e5004be78fe2b1b98cb3bfa0e51b74b/install.md#apt-based-operating-systems
       "echo '>>> CRI-O'",
 
       # fixme(maximsmol): take into account ${ubuntu_version}
-      "export OS='xUbuntu_20.04'",
-      "export VERSION='${var.k8s_version}'",
+      "export PROJECT_PATH='prerelease:/main'",
+      "export VERSION='v${var.k8s_version}'",
 
-      "echo Adding repositories",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list",
-      "echo \"deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /\" | sudo dd status=none of=/etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list",
+      "echo Adding keys and repositories",
+      "mkdir --parents /etc/apt/keyrings",
 
-      "echo Adding keys",
-      "mkdir --parents /usr/share/keyrings",
-      "curl --location https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-archive-keyring.gpg",
-      "curl --location https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo gpg --dearmor --output /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg",
+      "curl -fsSL https://pkgs.k8s.io/core:/stable:/$VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg",
+      "echo \"deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$VERSION/deb/ /\" | sudo tee /etc/apt/sources.list.d/kubernetes.list",
+
+      "curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg",
+      "echo \"deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/$PROJECT_PATH/deb/ /\" | sudo tee /etc/apt/sources.list.d/cri-o.list",
 
       "echo Updating apt",
       "sudo apt-get update",
 
       "echo Installing CRI-O",
-      "sudo apt-get install --yes --no-install-recommends cri-o cri-o-runc",
+      "sudo apt-get install --yes --no-install-recommends cri-o",
 
       "export CRICTL_VERSION='v${var.k8s_version}.0'",
       "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
@@ -314,6 +291,20 @@ build {
     ]
   }
 
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "echo '>>> Conmon Install'",
+      "sudo apt-get install --yes --no-install-recommends libc6-dev libglib2.0-dev runc",
+      "git clone https://github.com/containers/conmon.git",
+      "cd conmon",
+      "make",
+      "sudo make install",
+      "cd ..",
+      "sudo rm -rf conmon"
+    ]
+  }
+
   provisioner "file" {
     # reference: https://github.com/awslabs/amazon-eks-ami/blob/main/templates/al2/runtime/bootstrap.sh
     source      = "bootstrap.sh.patch"
@@ -338,6 +329,8 @@ build {
       "echo Installing Dasel",
       "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 --output /usr/local/bin/dasel",
       "sudo chmod u+x /usr/local/bin/dasel",
+
+      "sudo touch /etc/crio/crio.conf",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
@@ -396,6 +389,16 @@ build {
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
+      "echo '>>> Installing NVIDIA Drivers 550'",
+      "wget --quiet https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run",
+      "sudo sh cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run --silent",
+      "rm cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
       "set -o pipefail -o errexit",
       "export DEBIAN_FRONTEND=noninteractive",
 
@@ -404,8 +407,7 @@ build {
       "rm cuda-keyring_1.0-1_all.deb",
 
       "sudo apt-get update",
-      "sudo --preserve-env=DEBIAN_FRONTEND apt-get --yes --no-install-recommends install libnvidia-common-530=${var.nvidia_driver_version} libnvidia-gl-530=${var.nvidia_driver_version} nvidia-kernel-common-530=${var.nvidia_driver_version} nvidia-dkms-530=${var.nvidia_driver_version} nvidia-kernel-source-530=${var.nvidia_driver_version} libnvidia-compute-530=${var.nvidia_driver_version} libnvidia-extra-530=${var.nvidia_driver_version} nvidia-compute-utils-530=${var.nvidia_driver_version} libnvidia-decode-530=${var.nvidia_driver_version} libnvidia-encode-530=${var.nvidia_driver_version} nvidia-utils-530=${var.nvidia_driver_version} xserver-xorg-video-nvidia-530=${var.nvidia_driver_version} libnvidia-cfg1-530=${var.nvidia_driver_version} libnvidia-fbc1-530=${var.nvidia_driver_version} nvidia-driver-530=${var.nvidia_driver_version} nvidia-container-toolkit",
-      "sudo apt-mark hold libnvidia-common-530 libnvidia-gl-530 nvidia-kernel-common-530 nvidia-dkms-530 nvidia-kernel-source-530 libnvidia-compute-530 libnvidia-extra-530 nvidia-compute-utils-530 libnvidia-decode-530 libnvidia-encode-530 nvidia-utils-530 xserver-xorg-video-nvidia-530 libnvidia-cfg1-530 libnvidia-fbc1-530 nvidia-driver-530",
+      "sudo apt-mark hold libnvidia-common-${split(".", var.cuda_driver_version)[0]} libnvidia-gl-${split(".", var.cuda_driver_version)[0]} nvidia-kernel-common-${split(".", var.cuda_driver_version)[0]} nvidia-dkms-${split(".", var.cuda_driver_version)[0]} nvidia-kernel-source-${split(".", var.cuda_driver_version)[0]} libnvidia-compute-${split(".", var.cuda_driver_version)[0]} libnvidia-extra-${split(".", var.cuda_driver_version)[0]} nvidia-compute-utils-${split(".", var.cuda_driver_version)[0]} libnvidia-decode-${split(".", var.cuda_driver_version)[0]} libnvidia-encode-${split(".", var.cuda_driver_version)[0]} nvidia-utils-${split(".", var.cuda_driver_version)[0]} xserver-xorg-video-nvidia-${split(".", var.cuda_driver_version)[0]} libnvidia-cfg1-${split(".", var.cuda_driver_version)[0]} libnvidia-fbc1-${split(".", var.cuda_driver_version)[0]} nvidia-driver-${split(".", var.cuda_driver_version)[0]}",
 
       # enable mounting FUSE device inside of containers
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
@@ -443,11 +445,6 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm-tools",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/vga_arbiter",
-
-      "sudo dasel put string --parser toml --selector 'crio.runtime.default_runtime' --file /etc/crio/crio.conf 'nvidia'",
-      "sudo dasel put object --parser toml --selector 'crio.runtime.runtimes.nvidia' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/nvidia-container-runtime'",
-      "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
-      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'"
     ]
   }
 
