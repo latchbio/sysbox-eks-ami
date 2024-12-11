@@ -486,4 +486,20 @@ build {
       "sudo dasel put string --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'memorySwap.swapBehavior' 'UnlimitedSwap'",
     ]
   }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o errexit -o nounset -o pipefail",
+
+      "echo '>>> Disabling volatile overlayfs feature in CRI-O storage options'",
+      "sudo mkdir -p /etc/containers/",
+      "sudo touch /etc/containers/storage.conf",
+      "sudo dasel put bool -f /etc/containers/storage.conf -s 'storage.options.overlay.disable_volatile' true --parser toml",
+
+
+      "echo '>>> Restarting CRI-O service to apply storage configuration changes'",
+      "sudo systemctl restart crio",
+    ]
+  }
 }
