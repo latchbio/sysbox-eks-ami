@@ -390,7 +390,8 @@ build {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "echo '>>> Preparing to install NVIDIA Drivers'",
-      "sudo apt install gcc-12 g++-12 dkms",
+      "sudo apt-get update",
+      "sudo apt-get install -y gcc-12 g++-12 dkms",
       "sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 10",
       "sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 20"
     ]
