@@ -457,19 +457,16 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm-tools",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/vga_arbiter",
 
+      "sudo dasel put string --parser toml --selector 'crio.runtime.default_runtime' --file /etc/crio/crio.conf 'nvidia'",
       "sudo dasel put object --parser toml --selector 'crio.runtime.runtimes.nvidia' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/nvidia-container-runtime'",
 
       "curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list",
       "sudo apt-get update",
       "sudo apt-get install -y nvidia-container-toolkit",
-      "sudo nvidia-ctk runtime configure --runtime=crio --config=/etc/crio/crio.conf.d/99-nvidia.conf",
+      "sudo nvidia-ctk runtime configure --runtime=crio --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf",
 
       "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
-
-      # some pods do not work with sysbox-runc such as those with host networking
-      "sudo dasel put string --parser toml --selector 'crio.runtime.default_runtime' --file /etc/crio/crio.conf 'runc'",
-      # pods which specify nvidia runtime will use sysbox-runc
-      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'sysbox-runc'",
+      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'",
 
       "sudo systemctl restart crio"
     ]
@@ -484,22 +481,6 @@ build {
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'failSwapOn' false",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'featureGates.NodeSwap' true",
       "sudo dasel put string --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'memorySwap.swapBehavior' 'UnlimitedSwap'",
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o errexit -o nounset -o pipefail",
-
-      "echo '>>> Disabling volatile overlayfs feature in CRI-O storage options'",
-      "sudo mkdir -p /etc/containers/",
-      "sudo touch /etc/containers/storage.conf",
-      "sudo dasel put bool -f /etc/containers/storage.conf -s 'storage.options.disable_volatile' true --parser toml",
-
-
-      "echo '>>> Restarting CRI-O service to apply storage configuration changes'",
-      "sudo systemctl restart crio",
     ]
   }
 }
