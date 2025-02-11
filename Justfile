@@ -13,7 +13,7 @@
   packer validate .
 
 @build:
-  packer build -debug sysbox-eks.pkr.hcl
+  packer build sysbox-eks.pkr.hcl
 
 @build-crio:
   docker build -t sysbox-eks-ami-crio . -f crio.Dockerfile
