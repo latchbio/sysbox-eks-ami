@@ -479,8 +479,34 @@ build {
 
       "echo '>>> Patching kubelet config'",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'failSwapOn' false",
-      "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'featureGates.NodeSwap' true",
+      "sudo dasel put boolean --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'featureGates.NodeSwap' true",
       "sudo dasel put string --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'memorySwap.swapBehavior' 'UnlimitedSwap'",
+    ]
+  }
+
+  provisioner "file" {
+    source      = "cloud-init-local.service.d/10-wait-for-net-device.conf"
+    destination = "/home/ubuntu/10-wait-for-net-device.conf"
+  }
+
+  provisioner "file" {
+    source      = "udev/10-ec2imds.rules"
+    destination = "/home/ubuntu/10-ec2imds.rules"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+      "",
+      "echo '>>> Installing cloud-init network device wait configuration'",
+      "sudo mkdir -p /etc/systemd/system/cloud-init-local.service.d",
+      "sudo mv /home/ubuntu/10-wait-for-net-device.conf /etc/systemd/system/cloud-init-local.service.d/",
+      "",
+      "sudo mkdir -p /etc/udev/rules.d",
+      "sudo mv /home/ubuntu/10-ec2imds.rules /etc/udev/rules.d/",
+      "",
+      "sudo systemctl daemon-reload"
     ]
   }
 }

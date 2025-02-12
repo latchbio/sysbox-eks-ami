@@ -1,0 +1,7 @@
+# cloud-init-local must wait for at least one network interface device to exist
+# before attempting to download EC2 instance metadata.
+#
+# These udev rules implement this policy along with
+# /etc/systemd/system/cloud-init.local.service.d/10-wait-for-net-device.conf
+
+ACTION!="remove", SUBSYSTEM=="net", KERNEL!="lo", DRIVERS=="ena|vif", TAG+="systemd", ENV{SYSTEMD_ALIAS}+="/dev/ec2imds" 
