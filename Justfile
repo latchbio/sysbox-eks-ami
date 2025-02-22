@@ -15,6 +15,9 @@
 @build:
   packer build sysbox-eks.pkr.hcl
 
+@build-incremental:
+  packer build sysbox-eks-incremental.pkr.hcl
+
 @build-crio:
   docker build -t sysbox-eks-ami-crio . -f crio.Dockerfile
   docker run \
