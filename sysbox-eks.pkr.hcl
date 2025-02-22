@@ -484,6 +484,16 @@ build {
     ]
   }
 
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring IPv6 prioritization'",
+      "echo 'label ::/0          100' | sudo tee -a /etc/gai.conf"
+    ]
+  }
+
   provisioner "file" {
     source      = "cloud-init-local.service.d/10-wait-for-net-device.conf"
     destination = "/home/ubuntu/10-wait-for-net-device.conf"
