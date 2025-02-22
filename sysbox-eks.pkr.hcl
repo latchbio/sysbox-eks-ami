@@ -483,4 +483,14 @@ build {
       "sudo dasel put string --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'memorySwap.swapBehavior' 'UnlimitedSwap'",
     ]
   }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring IPv6 prioritization'",
+      "echo 'label ::/0          100' | sudo tee -a /etc/gai.conf"
+    ]
+  }
 }
