@@ -356,7 +356,7 @@ build {
 
       "echo '>>> Patching kubelet config'",
       "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'failSwapOn' false",
-      "sudo dasel put boolean --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'featureGates.NodeSwap' true",
+      "sudo dasel put bool --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'featureGates.NodeSwap' true",
       "sudo dasel put string --parser json --file /etc/kubernetes/kubelet/kubelet-config.json --selector 'memorySwap.swapBehavior' 'UnlimitedSwap'",
     ]
   }
@@ -404,12 +404,8 @@ build {
 
       "echo '>>> Configuring KVM support'",
       "sudo modprobe kvm",
-      "sudo modprobe kvm_intel",
-      "sudo modprobe kvm_amd",
 
       "echo 'kvm' | sudo tee -a /etc/modules",
-      "echo 'kvm_intel' | sudo tee -a /etc/modules",
-      "echo 'kvm_amd' | sudo tee -a /etc/modules",
 
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
 
