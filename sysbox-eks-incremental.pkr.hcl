@@ -54,7 +54,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.cuda_driver_version}/latch-${local.git_branch}"
+  expression = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/jammy-22.04-amd64-server/nvidia-560.35.05/kvm-support-aed4"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -78,7 +78,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/jammy-22.04-amd64-server/nvidia-560.35.05/kvm-support"
+      name = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/ubuntu-jammy-22.04-amd64-server/nvidia-560.35.05/latch-a08a-aidan-latest-gpu-drivers"
     }
     owners = ["812206152185"]
   }
@@ -110,12 +110,8 @@ build {
 
       "echo '>>> Configuring KVM support'",
       "sudo modprobe kvm",
-      "sudo modprobe kvm_intel",
-      "sudo modprobe kvm_amd",
 
       "echo 'kvm' | sudo tee -a /etc/modules",
-      "echo 'kvm_intel' | sudo tee -a /etc/modules",
-      "echo 'kvm_amd' | sudo tee -a /etc/modules",
 
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
 
