@@ -1,5 +1,4 @@
 variable "ubuntu_version" {
-
   default = "jammy-22.04"
 
   validation {
@@ -59,18 +58,18 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-amd64-server/nvidia-${var.cuda_driver_version}/latch-${local.git_branch}"
+  expression = "latch-bio/sysbox-eks_${var.sysbox_version}/k8s_${var.k8s_version}/ubuntu-${var.ubuntu_version}-arm64-server/latch-${local.git_branch}"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
   ami_name        = local.ami_name
-  ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}) with NVIDIA GPU support, on Ubuntu ${var.ubuntu_version}, amd64 image."
+  ami_description = "Latch Bio, Sysbox EKS Node (k8s_${var.k8s_version}) on Ubuntu ${var.ubuntu_version}, arm64 image."
 
   tags = {
     Linux         = "Ubuntu"
     UbuntuRelease = split("-", var.ubuntu_version)[0]
     UbuntuVersion = split("-", var.ubuntu_version)[1]
-    Arch          = "amd64"
+    Arch          = "arm64"
     K8sVersion    = var.k8s_version
     SysboxVersion = var.sysbox_version
 
@@ -83,7 +82,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20241204"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-arm64-server-20241204"
     }
     owners = ["099720109477"]
   }
@@ -96,7 +95,7 @@ source "amazon-ebs" "ubuntu-eks" {
   }
 
   region        = "us-west-2"
-  instance_type = "t2.micro"
+  instance_type = "c6g.large"  # ARM-based instance type
   ssh_username  = "ubuntu"
   temporary_key_pair_type = "ed25519"
   ssh_handshake_attempts = 100
@@ -136,16 +135,15 @@ build {
     ]
   }
 
-  // all features which require latch on the node are deprecated
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "set -o pipefail -o errexit",
 
       "echo '>>> Installing latch'",
-      "curl --location --fail --remote-name https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh",
-      "sudo bash Miniforge3-Linux-x86_64.sh -b -p /opt/miniforge -u",
-      "rm Miniforge3-Linux-x86_64.sh",
+      "curl --location --fail --remote-name https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-aarch64.sh",
+      "sudo bash Miniforge3-Linux-aarch64.sh -b -p /opt/miniforge -u",
+      "rm Miniforge3-Linux-aarch64.sh",
 
       "sudo /opt/miniforge/bin/conda create --copy -y -p /opt/latch-env python=3.11",
       "sudo /opt/latch-env/bin/pip install --upgrade latch"
@@ -158,24 +156,21 @@ build {
       "set -o pipefail -o errexit",
       "export DEBIAN_FRONTEND=noninteractive",
 
-      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
       "echo '>>> Sysbox'",
       "echo Downloading the Sysbox package",
-      "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_amd64.deb",
+      "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_arm64.deb",
 
       "echo Installing Sysbox package dependencies",
-
       "sudo apt-get install rsync -y",
 
       "echo Installing the Sysbox package",
-      "sudo dpkg --install ./sysbox-ce_*.linux_amd64.deb || true", # will fail due to missing dependencies, fixed in the next step
+      "sudo dpkg --install ./sysbox-ce_*.linux_arm64.deb || true",
 
       "echo 'Fixing the Sysbox package (installing dependencies)'",
-
       "sudo --preserve-env=DEBIAN_FRONTEND apt-get install --fix-broken --yes --no-install-recommends",
 
       "echo Cleaning up",
-      "rm ./sysbox-ce_*.linux_amd64.deb",
+      "rm ./sysbox-ce_*.linux_arm64.deb",
     ]
   }
 
@@ -200,10 +195,7 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
-      # https://github.com/cri-o/cri-o/blob/a68a72071e5004be78fe2b1b98cb3bfa0e51b74b/install.md#apt-based-operating-systems
       "echo '>>> CRI-O'",
-
-      # fixme(maximsmol): take into account ${ubuntu_version}
       "export PROJECT_PATH='prerelease:/main'",
       "export VERSION='v${var.k8s_version}'",
 
@@ -223,40 +215,17 @@ build {
       "sudo apt-get install --yes --no-install-recommends cri-o",
 
       "export CRICTL_VERSION='v${var.k8s_version}.0'",
-      "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
-      "sudo tar zxvf crictl-$CRICTL_VERSION-linux-amd64.tar.gz -C /usr/local/bin",
-      "rm --force crictl-$CRICTL_VERSION-linux-amd64.tar.gz",
+      "wget https://github.com/kubernetes-sigs/cri-tools/releases/download/$CRICTL_VERSION/crictl-$CRICTL_VERSION-linux-arm64.tar.gz",
+      "sudo tar zxvf crictl-$CRICTL_VERSION-linux-arm64.tar.gz -C /usr/local/bin",
+      "rm --force crictl-$CRICTL_VERSION-linux-arm64.tar.gz",
 
       "echo Enabling CRI-O at startup",
       "sudo systemctl enable crio"
     ]
   }
 
-
-  ## Uncomment this section to install from a patched CRI-O binary
-  # provisioner "file" {
-  #   source      = "crio"
-  #   destination = "/home/ubuntu/crio"
-  #   max_retries = 3
-  # }
-
-  # provisioner "shell" {
-  #   inline = [
-  #     "echo '>>> Installing prebuilt patched CRI-O'",
-  #     "sudo mv crio /usr/bin/crio",
-
-  #     "echo Setting permissions",
-  #     "sudo chmod u+x /usr/bin/crio"
-
-  #     # "echo Restarting CRI-O",
-  #     # "sudo systemctl restart crio"
-  #   ]
-  # }
-
-  ## Comment this section to install from a patched CRI-O binary
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
-
     inline = [
       "set -o pipefail -o errexit",
 
@@ -267,7 +236,6 @@ build {
 
       "echo Installing Go",
       "sudo apt-get update",
-      # todo(maximsmol): lock the golang version
       "sudo apt-get install --yes --no-install-recommends golang-go libgpgme-dev pkg-config libseccomp-dev",
 
       "echo Cloning the patched CRI-O repository",
@@ -280,7 +248,6 @@ build {
       "echo Installing the patched binary",
       "sudo mv bin/crio /usr/bin/crio",
       "sudo chmod u+x /usr/bin/crio",
-
 
       "echo Cleaning up",
       "cd ..",
@@ -306,7 +273,6 @@ build {
   }
 
   provisioner "file" {
-    # reference: https://github.com/awslabs/amazon-eks-ami/blob/main/templates/al2/runtime/bootstrap.sh
     source      = "bootstrap.sh.patch"
     destination = "/home/ubuntu/bootstrap.sh.patch"
   }
@@ -323,7 +289,6 @@ build {
     inline = [
       "set -o pipefail -o errexit",
 
-      # Much of the rest of this is from inside the Sysbox K8s installer image
       "echo '>>> Doing basic CRI-O configuration'",
 
       "echo Installing Dasel",
@@ -332,11 +297,9 @@ build {
 
       "sudo touch /etc/crio/crio.conf",
 
-      # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.conmon_cgroup' 'pod'",
 
-      # use containerd/Docker's default capabilities: https://github.com/moby/moby/blob/faf84d7f0a1f2e6badff6f720a3e1e559c356fff/oci/caps/defaults.go
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple CHOWN",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple DAC_OVERRIDE",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple FSETID",
@@ -352,12 +315,12 @@ build {
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple KILL",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple AUDIT_WRITE",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.default_capabilities.[]' --multiple LINUX_IMMUTABLE",
-      #
+
       "sudo dasel put int --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.pids_limit' 16384",
-      #
+
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subuid",
       "echo 'containers:231072:1048576' | sudo tee --append /etc/subgid",
-      # /usr/local/share/eks/bootstrap.sh is symlinked to /etc/eks/boostrap.sh
+
       "sudo patch --backup /usr/local/share/eks/bootstrap.sh /usr/local/share/eks/bootstrap.sh.patch"
     ]
   }
@@ -383,92 +346,6 @@ build {
 
       "echo '>>> Removing /etc/cni/net.d'",
       "sudo rm -r /etc/cni/net.d/",
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "echo '>>> Preparing to install NVIDIA Drivers'",
-      "sudo apt-get update",
-      "sudo apt-get install -y gcc-12 g++-12 dkms",
-      "sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 10",
-      "sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 20"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "echo '>>> Installing NVIDIA Drivers 560'",
-      "wget --quiet https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run",
-      "sudo sh cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run --silent",
-      "rm cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-      "export DEBIAN_FRONTEND=noninteractive",
-
-      "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb",
-      "sudo dpkg -i cuda-keyring_1.0-1_all.deb",
-      "rm cuda-keyring_1.0-1_all.deb",
-
-      "sudo apt-get update",
-      "sudo apt-mark hold libnvidia-common-${split(".", var.cuda_driver_version)[0]} libnvidia-gl-${split(".", var.cuda_driver_version)[0]} nvidia-kernel-common-${split(".", var.cuda_driver_version)[0]} nvidia-dkms-${split(".", var.cuda_driver_version)[0]} nvidia-kernel-source-${split(".", var.cuda_driver_version)[0]} libnvidia-compute-${split(".", var.cuda_driver_version)[0]} libnvidia-extra-${split(".", var.cuda_driver_version)[0]} nvidia-compute-utils-${split(".", var.cuda_driver_version)[0]} libnvidia-decode-${split(".", var.cuda_driver_version)[0]} libnvidia-encode-${split(".", var.cuda_driver_version)[0]} nvidia-utils-${split(".", var.cuda_driver_version)[0]} xserver-xorg-video-nvidia-${split(".", var.cuda_driver_version)[0]} libnvidia-cfg1-${split(".", var.cuda_driver_version)[0]} libnvidia-fbc1-${split(".", var.cuda_driver_version)[0]} nvidia-driver-${split(".", var.cuda_driver_version)[0]}",
-
-      # enable mounting FUSE device inside of containers
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
-
-      # enable mounting NVIDIA devices inside of containers
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card0",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card1",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card2",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card3",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card4",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card5",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card6",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/card7",
-
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD128",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD129",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD130",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD131",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD132",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD133",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD134",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/dri/renderD135",
-
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia0",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia1",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia2",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia3",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia4",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia5",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia6",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia7",
-
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidiactl",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-modeset",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/nvidia-uvm-tools",
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/vga_arbiter",
-
-      "sudo dasel put string --parser toml --selector 'crio.runtime.default_runtime' --file /etc/crio/crio.conf 'nvidia'",
-      "sudo dasel put object --parser toml --selector 'crio.runtime.runtimes.nvidia' --file /etc/crio/crio.conf --type string 'runtime_path=/usr/bin/nvidia-container-runtime'",
-
-      "curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list",
-      "sudo apt-get update",
-      "sudo apt-get install -y nvidia-container-toolkit",
-      "sudo nvidia-ctk runtime configure --runtime=crio --set-as-default --config=/etc/crio/crio.conf.d/99-nvidia.conf",
-
-      "sudo dasel delete --parser toml --selector 'nvidia-container-runtime.runtimes' --file /etc/nvidia-container-runtime/config.toml",
-      "sudo dasel put string --parser toml --selector 'nvidia-container-runtime.runtimes.[]' --file /etc/nvidia-container-runtime/config.toml 'runc'",
-
-      "sudo systemctl restart crio"
     ]
   }
 
