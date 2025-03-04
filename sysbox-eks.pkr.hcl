@@ -95,7 +95,7 @@ source "amazon-ebs" "ubuntu-eks" {
   }
 
   region        = "us-west-2"
-  instance_type = "c6g.large"  # ARM-based instance type
+  instance_type = "c6g.large"
   ssh_username  = "ubuntu"
   temporary_key_pair_type = "ed25519"
   ssh_handshake_attempts = 100
@@ -292,7 +292,7 @@ build {
       "echo '>>> Doing basic CRI-O configuration'",
 
       "echo Installing Dasel",
-      "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_amd64 --output /usr/local/bin/dasel",
+      "sudo curl --location https://github.com/TomWright/dasel/releases/download/v1.24.3/dasel_linux_arm64 --output /usr/local/bin/dasel",
       "sudo chmod u+x /usr/local/bin/dasel",
 
       "sudo touch /etc/crio/crio.conf",
