@@ -78,7 +78,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/ubuntu-jammy-22.04-amd64-server/nvidia-560.35.05/latch-1f87-aidan-latest-gpu-drivers"
+      name = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/jammy-22.04-amd64-server/nvidia-560.35.05/kvm-support"
     }
     owners = ["812206152185"]
   }
@@ -103,4 +103,23 @@ build {
     "source.amazon-ebs.ubuntu-eks",
   ]
 
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring KVM support'",
+      "sudo modprobe kvm",
+      "sudo modprobe kvm_intel",
+      "sudo modprobe kvm_amd",
+
+      "echo 'kvm' | sudo tee -a /etc/modules",
+      "echo 'kvm_intel' | sudo tee -a /etc/modules",
+      "echo 'kvm_amd' | sudo tee -a /etc/modules",
+
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
+
+      "sudo systemctl restart crio"
+    ]
+  }
 }

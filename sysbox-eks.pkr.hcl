@@ -519,4 +519,24 @@ build {
       "sudo systemctl daemon-reload"
     ]
   }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring KVM support'",
+      "sudo modprobe kvm",
+      "sudo modprobe kvm_intel",
+      "sudo modprobe kvm_amd",
+
+      "echo 'kvm' | sudo tee -a /etc/modules",
+      "echo 'kvm_intel' | sudo tee -a /etc/modules",
+      "echo 'kvm_amd' | sudo tee -a /etc/modules",
+
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
+
+      "sudo systemctl restart crio"
+    ]
+  }
 }
