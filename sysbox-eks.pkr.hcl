@@ -408,6 +408,7 @@ build {
       "echo 'kvm' | sudo tee -a /etc/modules",
 
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/fuse",
 
       "sudo systemctl restart crio"
     ]
