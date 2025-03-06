@@ -78,7 +78,7 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/ubuntu-jammy-22.04-amd64-server/nvidia-560.35.05/latch-a08a-aidan-latest-gpu-drivers"
+      name = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/ubuntu-jammy-22.04-amd64-server/nvidia-560.35.05/latch-92cf-aidan-latest-gpu-drivers"
     }
     owners = ["812206152185"]
   }
