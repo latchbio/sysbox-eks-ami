@@ -536,7 +536,12 @@ build {
 
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
 
-      "sudo systemctl restart crio"
+      "sudo systemctl restart crio",
+
+      # configure /dev/kvm perms to allow containers to r/w to it
+      "echo 'KERNEL==\"kvm\", MODE=\"0666\"' | sudo tee /etc/udev/rules.d/99-kvm-permissions.rules > /dev/null",
+      "sudo udevadm control --reload-rules",
+      "sudo udevadm trigger"
     ]
   }
 }
