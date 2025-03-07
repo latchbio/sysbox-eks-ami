@@ -54,7 +54,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/jammy-22.04-amd64-server/nvidia-560.35.05/kvm-support-ccf4"
+  expression = "latch-bio/sysbox-eks_0.6.5/k8s_1.29/jammy-22.04-amd64-server/nvidia-560.35.05/kvm-support-b744"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -115,7 +115,7 @@ build {
 
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
 
-      "sudo systemctl restart crio"
+      "sudo systemctl restart crio",
 
       # configure /dev/kvm perms to allow containers to r/w to it
       "echo 'KERNEL==\"kvm\", MODE=\"0666\"' | sudo tee /etc/udev/rules.d/99-kvm-permissions.rules > /dev/null",
