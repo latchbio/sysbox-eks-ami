@@ -136,6 +136,20 @@ build {
     ]
   }
 
+  // install lustre client
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Installing Lustre'",
+      "wget -O - https://fsx-lustre-client-repo-public-keys.s3.amazonaws.com/fsx-ubuntu-public-key.asc | gpg --dearmor | sudo tee /usr/share/keyrings/fsx-ubuntu-public-key.gpg >/dev/null",
+      "sudo bash -c 'echo \"deb [signed-by=/usr/share/keyrings/fsx-ubuntu-public-key.gpg] https://fsx-lustre-client-repo.s3.amazonaws.com/ubuntu $(lsb_release -cs) main\" > /etc/apt/sources.list.d/fsxlustreclientrepo.list && apt-get update'",
+
+      "sudo apt install -y lustre-client-modules-$(uname -r)"
+    ]
+  }
+
   // all features which require latch on the node are deprecated
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
