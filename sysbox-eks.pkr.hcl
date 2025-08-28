@@ -10,7 +10,7 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.6.5"
+  default = "0.6.7"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
