@@ -35,7 +35,7 @@ variable "cuda_version" {
 
 variable "cuda_driver_version" {
   type    = string
-  default = "530.30.02""
+  default = "530.30.02"
 }
 
 packer {
