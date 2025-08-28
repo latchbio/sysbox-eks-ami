@@ -96,7 +96,7 @@ source "amazon-ebs" "ubuntu-eks" {
   }
 
   region        = "us-west-2"
-  instance_type = "t2.micro"
+  instance_type = "t3.large"
   ssh_username  = "ubuntu"
   temporary_key_pair_type = "ed25519"
   ssh_handshake_attempts = 100
