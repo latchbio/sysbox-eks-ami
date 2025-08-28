@@ -30,7 +30,7 @@ variable "k8s_version" {
 
 variable "cuda_version" {
   type    = string
-  default = "12.6.3"
+  default = "12.1.1"
 }
 
 variable "cuda_driver_version" {
@@ -414,8 +414,8 @@ build {
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"
     inline = [
-      "echo '>>> Installing NVIDIA Drivers 560'",
-      "wget --quiet https://developer.download.nvidia.com/compute/cuda/12.6.3/local_installers/cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run",
+      "echo '>>> Installing NVIDIA Drivers 530'",
+      "wget --quiet https://developer.download.nvidia.com/compute/cuda/${var.cuda_version}/local_installers/cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run",
       "sudo sh cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run --silent",
       "rm cuda_${var.cuda_version}_${var.cuda_driver_version}_linux.run"
     ]
