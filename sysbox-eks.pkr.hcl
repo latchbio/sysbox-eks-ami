@@ -508,4 +508,15 @@ build {
       "echo 'label ::/0          100' | sudo tee -a /etc/gai.conf"
     ]
   }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "sudo iptables -P INPUT ACCEPT",
+      "sudo iptables -P FORWARD ACCEPT",
+      "sudo iptables -P OUTPUT ACCEPT",
+      "sudo iptables -F",
+    ]
+  }
+
 }
