@@ -85,7 +85,7 @@ source "amazon-ebs" "ubuntu-eks" {
     filters = {
       name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240201-prod-lg73jq6vy35h2"
     }
-    owners = ["099720109477"]
+    owners = ["679593333241"]
   }
 
   launch_block_device_mappings {
