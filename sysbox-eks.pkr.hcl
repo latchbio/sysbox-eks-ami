@@ -333,7 +333,8 @@ build {
       "sudo touch /etc/crio/crio.conf",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
+      # note(aidan): removed this with sysbox 0.6.7 and put back to 'systemd'
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'systemd'",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.conmon_cgroup' 'pod'",
 
       # use containerd/Docker's default capabilities: https://github.com/moby/moby/blob/faf84d7f0a1f2e6badff6f720a3e1e559c356fff/oci/caps/defaults.go
