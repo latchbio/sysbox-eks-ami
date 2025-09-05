@@ -54,7 +54,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_0.6.7/1.28/focal-20.04-amd64-server/nvidia-530.30.02-0ubuntu1"
+  expression = "latch-bio/sysbox-eks_0.6.7/1.28/focal-20.04-amd64-server/nvidia-530.30.02-0ubuntu1-rev1"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -138,53 +138,6 @@ build {
 
       "echo Cleaning up",
       "rm ./sysbox-ce_*.linux_amd64.deb",
-    ]
-  }
-
-  provisioner "file" {
-    source      = "cloud-init-local.service.d/10-wait-for-net-device.conf"
-    destination = "/home/ubuntu/10-wait-for-net-device.conf"
-  }
-
-  provisioner "file" {
-    source      = "udev/10-ec2imds.rules"
-    destination = "/home/ubuntu/10-ec2imds.rules"
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-      "",
-      "echo '>>> Installing cloud-init network device wait configuration'",
-      "sudo mkdir -p /etc/systemd/system/cloud-init-local.service.d",
-      "sudo mv /home/ubuntu/10-wait-for-net-device.conf /etc/systemd/system/cloud-init-local.service.d/",
-      "",
-      "sudo mkdir -p /etc/udev/rules.d",
-      "sudo mv /home/ubuntu/10-ec2imds.rules /etc/udev/rules.d/",
-      "",
-      "sudo systemctl daemon-reload"
-    ]
-  }
-
-  provisioner "shell" {
-    inline_shebang = "/usr/bin/env bash"
-    inline = [
-      "set -o pipefail -o errexit",
-
-      "echo '>>> Configuring KVM support'",
-      "sudo modprobe kvm",
-
-      "echo 'kvm' | sudo tee -a /etc/modules",
-
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
-
-      "sudo systemctl restart crio",
-
-      # configure /dev/kvm perms to allow containers to r/w to it
-      "echo 'KERNEL==\"kvm\", MODE=\"0666\"' | sudo tee /etc/udev/rules.d/99-kvm-permissions.rules > /dev/null",
-      "sudo udevadm control --reload-rules",
-      "sudo udevadm trigger"
     ]
   }
 
