@@ -1,5 +1,5 @@
---- bootstrap.sh	2024-04-08 15:32:39
-+++ patched_bootstrap.sh	2024-04-08 15:36:38
+--- bootstrap.sh	2025-02-11 13:09:53
++++ patched_bootstrap.sh	2025-02-11 13:23:06
 @@ -150,7 +150,7 @@
  API_RETRY_ATTEMPTS="${API_RETRY_ATTEMPTS:-3}"
  DOCKER_CONFIG_JSON="${DOCKER_CONFIG_JSON:-}"
@@ -9,7 +9,45 @@
  CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-$DEFAULT_CONTAINER_RUNTIME}"
  # from >= 1.27, the cloud-provider will be external
  CLOUD_PROVIDER="external"
-@@ -426,17 +426,28 @@
+@@ -295,11 +295,15 @@
+             --region=${AWS_DEFAULT_REGION} \
+             --name=${CLUSTER_NAME}
+ 
++        # Switch to JSON output to avoid "NoneType" flush bug in text mode.
++        # Then parse the required fields with jq, output them on a single line.
+         aws eks describe-cluster \
+             --region=${AWS_DEFAULT_REGION} \
+             --name=${CLUSTER_NAME} \
+-            --output=text \
+-            --query 'cluster.{certificateAuthorityData: certificateAuthority.data, endpoint: endpoint, serviceIpv4Cidr: kubernetesNetworkConfig.serviceIpv4Cidr, serviceIpv6Cidr: kubernetesNetworkConfig.serviceIpv6Cidr, clusterIpFamily: kubernetesNetworkConfig.ipFamily}' > $DESCRIBE_CLUSTER_RESULT || rc=$?
++            --output=json \
++            | jq -r '.cluster | "\( .certificateAuthority.data ) \( .endpoint ) \( .kubernetesNetworkConfig.serviceIpv4Cidr ) \( .kubernetesNetworkConfig.serviceIpv6Cidr ) \( .kubernetesNetworkConfig.ipFamily )"' \
++            > $DESCRIBE_CLUSTER_RESULT || rc=$?
++
+         if [[ $rc -eq 0 ]]; then
+             break
+         fi
+@@ -310,13 +314,14 @@
+         sleep_sec="$(( $(( 5 << $((1+$attempt)) )) + $jitter))"
+         sleep $sleep_sec
+     done
+-    B64_CLUSTER_CA=$(cat $DESCRIBE_CLUSTER_RESULT | awk '{print $1}')
+-    APISERVER_ENDPOINT=$(cat $DESCRIBE_CLUSTER_RESULT | awk '{print $3}')
+-    SERVICE_IPV4_CIDR=$(cat $DESCRIBE_CLUSTER_RESULT | awk '{print $4}')
+-    SERVICE_IPV6_CIDR=$(cat $DESCRIBE_CLUSTER_RESULT | awk '{print $5}')
+ 
++    # Our jq line puts five fields on one line. Re-map them accordingly.
++    B64_CLUSTER_CA="$(awk '{print $1}' $DESCRIBE_CLUSTER_RESULT)"
++    APISERVER_ENDPOINT="$(awk '{print $2}' $DESCRIBE_CLUSTER_RESULT)"
++    SERVICE_IPV4_CIDR="$(awk '{print $3}' $DESCRIBE_CLUSTER_RESULT)"
++    SERVICE_IPV6_CIDR="$(awk '{print $4}' $DESCRIBE_CLUSTER_RESULT)"
+     if [[ -z "${IP_FAMILY}" ]]; then
+-      IP_FAMILY=$(cat $DESCRIBE_CLUSTER_RESULT | awk '{print $2}')
++      IP_FAMILY="$(awk '{print $5}' $DESCRIBE_CLUSTER_RESULT)"
+     fi
+ fi
+ 
+@@ -434,17 +439,28 @@
      systemctl restart docker
      snap set kubelet-eks \
  	container-runtime=docker
@@ -25,7 +63,7 @@
 +    --file /etc/crio/crio.conf \
 +    --selector 'crio.image.pause_image' \
 +    "${PAUSE_CONTAINER}"
-
+ 
  elif [[ "$CONTAINER_RUNTIME" = "nvidia-container-runtime" ]]; then
 -    echo "Container runtime is ${CONTAINER_RUNTIME}"
 -    # update config.toml file
@@ -37,7 +75,7 @@
 +  # see https://github.com/NVIDIA/k8s-device-plugin
 +  cp /usr/local/share/eks/nvidia-runtime-config.toml /etc/containerd/config.toml
 +  systemctl restart containerd
-
+ 
  else
 -    echo "Container runtime ${CONTAINER_RUNTIME} is not supported."
 -    exit 1

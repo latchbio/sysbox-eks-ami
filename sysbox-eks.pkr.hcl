@@ -507,4 +507,51 @@ build {
       "echo 'label ::/0          100' | sudo tee -a /etc/gai.conf"
     ]
   }
+
+  provisioner "file" {
+    source      = "cloud-init-local.service.d/10-wait-for-net-device.conf"
+    destination = "/home/ubuntu/10-wait-for-net-device.conf"
+  }
+
+  provisioner "file" {
+    source      = "udev/10-ec2imds.rules"
+    destination = "/home/ubuntu/10-ec2imds.rules"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+      "",
+      "echo '>>> Installing cloud-init network device wait configuration'",
+      "sudo mkdir -p /etc/systemd/system/cloud-init-local.service.d",
+      "sudo mv /home/ubuntu/10-wait-for-net-device.conf /etc/systemd/system/cloud-init-local.service.d/",
+      "",
+      "sudo mkdir -p /etc/udev/rules.d",
+      "sudo mv /home/ubuntu/10-ec2imds.rules /etc/udev/rules.d/",
+      "",
+      "sudo systemctl daemon-reload"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring KVM support'",
+      "sudo modprobe kvm",
+
+      "echo 'kvm' | sudo tee -a /etc/modules",
+
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
+
+      "sudo systemctl restart crio",
+
+      # configure /dev/kvm perms to allow containers to r/w to it
+      "echo 'KERNEL==\"kvm\", MODE=\"0666\"' | sudo tee /etc/udev/rules.d/99-kvm-permissions.rules > /dev/null",
+      "sudo udevadm control --reload-rules",
+      "sudo udevadm trigger"
+    ]
+  }
 }
