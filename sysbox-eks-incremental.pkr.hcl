@@ -107,6 +107,17 @@ build {
     inline_shebang = "/usr/bin/env bash"
     inline = [
       "set -o pipefail -o errexit",
+
+      "echo Updating apt",
+      "sudo apt update --yes",
+      "sudo apt-get update --yes",
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
       "export DEBIAN_FRONTEND=noninteractive",
 
       # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
