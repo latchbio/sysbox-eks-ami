@@ -10,7 +10,7 @@ variable "ubuntu_version" {
 
 variable "sysbox_version" {
   type    = string
-  default = "0.6.4"
+  default = "0.6.7"
 
   validation {
     condition     = can(regex("^\\d+\\.\\d+\\.\\d+$", var.sysbox_version))
@@ -54,7 +54,7 @@ local "git_branch" {
 }
 
 local "ami_name" {
-  expression = "latch-bio/sysbox-eks_0.6.4/1.28/focal-20.04-amd64-server/nvidia-530.30.02-0ubuntu1/latch-69cb-maximsmol-swap/gai-patch"
+  expression = "latch-bio/sysbox-eks_0.6.7/1.28/focal-20.04-amd64-server/nvidia-530.30.02-0ubuntu1"
 }
 
 source "amazon-ebs" "ubuntu-eks" {
@@ -102,6 +102,80 @@ build {
   sources = [
     "source.amazon-ebs.ubuntu-eks",
   ]
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+      "export DEBIAN_FRONTEND=noninteractive",
+
+      # https://github.com/nestybox/sysbox/blob/b25fe4a3f9a6501992f8bb3e28d206302de9f33b/docs/user-guide/install-package.md#installing-sysbox
+      "echo '>>> Sysbox'",
+      "echo Downloading the Sysbox package",
+      "wget https://downloads.nestybox.com/sysbox/releases/v${var.sysbox_version}/sysbox-ce_${var.sysbox_version}-0.linux_amd64.deb",
+
+      "echo Installing Sysbox package dependencies",
+
+      "sudo apt-get install rsync -y",
+
+      "echo Installing the Sysbox package",
+      "sudo dpkg --install ./sysbox-ce_*.linux_amd64.deb || true", # will fail due to missing dependencies, fixed in the next step
+
+      "echo 'Fixing the Sysbox package (installing dependencies)'",
+
+      "sudo --preserve-env=DEBIAN_FRONTEND apt-get install --fix-broken --yes --no-install-recommends",
+
+      "echo Cleaning up",
+      "rm ./sysbox-ce_*.linux_amd64.deb",
+    ]
+  }
+
+  provisioner "file" {
+    source      = "cloud-init-local.service.d/10-wait-for-net-device.conf"
+    destination = "/home/ubuntu/10-wait-for-net-device.conf"
+  }
+
+  provisioner "file" {
+    source      = "udev/10-ec2imds.rules"
+    destination = "/home/ubuntu/10-ec2imds.rules"
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+      "",
+      "echo '>>> Installing cloud-init network device wait configuration'",
+      "sudo mkdir -p /etc/systemd/system/cloud-init-local.service.d",
+      "sudo mv /home/ubuntu/10-wait-for-net-device.conf /etc/systemd/system/cloud-init-local.service.d/",
+      "",
+      "sudo mkdir -p /etc/udev/rules.d",
+      "sudo mv /home/ubuntu/10-ec2imds.rules /etc/udev/rules.d/",
+      "",
+      "sudo systemctl daemon-reload"
+    ]
+  }
+
+  provisioner "shell" {
+    inline_shebang = "/usr/bin/env bash"
+    inline = [
+      "set -o pipefail -o errexit",
+
+      "echo '>>> Configuring KVM support'",
+      "sudo modprobe kvm",
+
+      "echo 'kvm' | sudo tee -a /etc/modules",
+
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.allowed_devices.[]' --multiple /dev/kvm",
+
+      "sudo systemctl restart crio",
+
+      # configure /dev/kvm perms to allow containers to r/w to it
+      "echo 'KERNEL==\"kvm\", MODE=\"0666\"' | sudo tee /etc/udev/rules.d/99-kvm-permissions.rules > /dev/null",
+      "sudo udevadm control --reload-rules",
+      "sudo udevadm trigger"
+    ]
+  }
 
   provisioner "shell" {
     inline_shebang = "/usr/bin/env bash"

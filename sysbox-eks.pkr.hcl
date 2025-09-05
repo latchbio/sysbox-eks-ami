@@ -83,9 +83,9 @@ source "amazon-ebs" "ubuntu-eks" {
 
   source_ami_filter {
     filters = {
-      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20240201-prod-lg73jq6vy35h2"
+      name = "ubuntu-eks/k8s_${var.k8s_version}/images/hvm-ssd/ubuntu-${var.ubuntu_version}-amd64-server-20250730"
     }
-    owners = ["679593333241"]
+    owners = ["099720109477"]
   }
 
   launch_block_device_mappings {
@@ -347,7 +347,8 @@ build {
       "sudo touch /etc/crio/crio.conf",
 
       # todo(maximsmol): do this only when K8s is configured without systemd cgroups (from sysbox todos)
-      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'cgroupfs'",
+      # note(aidan): removed this with newer kernel (6.5+) and put back to 'systemd'
+      "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.cgroup_manager' 'systemd'",
       "sudo dasel put string --parser toml --file /etc/crio/crio.conf --selector 'crio.runtime.conmon_cgroup' 'pod'",
 
       # use containerd/Docker's default capabilities: https://github.com/moby/moby/blob/faf84d7f0a1f2e6badff6f720a3e1e559c356fff/oci/caps/defaults.go
